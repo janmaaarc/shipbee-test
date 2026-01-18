@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { ArrowLeft, X, Clock, AlertCircle, CheckCircle, XCircle, MousePointerClick, ChevronLeft } from 'lucide-react'
+import { X, Clock, AlertCircle, CheckCircle, XCircle, MousePointerClick, ChevronLeft } from 'lucide-react'
 import { formatDate } from '../../lib/utils'
 import { Avatar } from '../ui/Avatar'
 import { MessageThread } from './MessageThread'
@@ -91,7 +91,7 @@ export function TicketDetail({ ticket, loading, onClose, onStatusChange, onSendM
   const StatusIcon = statusConfig[ticket.status].icon
 
   function handleStatusSelect(status: TicketStatus) {
-    if (status === ticket.status) return
+    if (!ticket || status === ticket.status) return
 
     // Show confirmation for closing or resolving
     if (status === 'closed' || status === 'resolved') {
