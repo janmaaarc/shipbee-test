@@ -1,6 +1,6 @@
+export type UserRole = 'customer' | 'admin'
 export type TicketStatus = 'open' | 'pending' | 'resolved' | 'closed'
 export type TicketPriority = 'low' | 'medium' | 'high' | 'urgent'
-export type UserRole = 'customer' | 'admin'
 
 export interface Profile {
   id: string
@@ -41,12 +41,17 @@ export interface Attachment {
 }
 
 // Extended types with relations
+export interface TicketWithCustomer extends Ticket {
+  customer: Profile
+  unread_count?: number
+  last_message_at?: string
+  last_message?: string // Preview of the last message content
+}
+
 export interface TicketWithDetails extends Ticket {
   customer: Profile
-  assigned_agent: Profile | null
+  assigned_admin: Profile | null
   messages: MessageWithSender[]
-  last_message?: Message
-  unread_count?: number
 }
 
 export interface MessageWithSender extends Message {
@@ -54,62 +59,21 @@ export interface MessageWithSender extends Message {
   attachments: Attachment[]
 }
 
-// API response types
-export interface TicketStats {
-  total: number
-  open: number
-  pending: number
-  resolved: number
-  closed: number
+// RPC response types
+export interface AdminStats {
+  total_tickets: number
+  open_tickets: number
+  pending_tickets: number
+  resolved_today: number
 }
 
-// Database schema type for Supabase client
-export interface Database {
-  public: {
-    Tables: {
-      profiles: {
-        Row: Profile
-        Insert: Omit<Profile, 'created_at'> & { created_at?: string }
-        Update: Partial<Omit<Profile, 'id'>>
-      }
-      tickets: {
-        Row: Ticket
-        Insert: Omit<Ticket, 'id' | 'created_at' | 'updated_at'> & { id?: string; created_at?: string; updated_at?: string }
-        Update: Partial<Omit<Ticket, 'id'>>
-      }
-      messages: {
-        Row: Message
-        Insert: Omit<Message, 'id' | 'created_at'> & { id?: string; created_at?: string }
-        Update: Partial<Omit<Message, 'id'>>
-      }
-      attachments: {
-        Row: Attachment
-        Insert: Omit<Attachment, 'id' | 'created_at'> & { id?: string; created_at?: string }
-        Update: Partial<Omit<Attachment, 'id'>>
-      }
-    }
-    Views: Record<string, never>
-    Functions: {
-      get_ticket_details: {
-        Args: { p_ticket_id: string }
-        Returns: TicketWithDetails
-      }
-      get_admin_stats: {
-        Args: Record<string, never>
-        Returns: TicketStats
-      }
-      search_tickets: {
-        Args: {
-          search_term: string
-          status_filter: TicketStatus[] | null
-        }
-        Returns: TicketWithDetails[]
-      }
-    }
-    Enums: {
-      ticket_status: TicketStatus
-      ticket_priority: TicketPriority
-      user_role: UserRole
-    }
-  }
+// Canned responses
+export interface CannedResponse {
+  id: string
+  title: string
+  content: string
+  shortcut?: string
+  category?: string
+  created_at: string
+  updated_at: string
 }

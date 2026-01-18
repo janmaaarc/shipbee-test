@@ -1,74 +1,197 @@
-import { useState } from 'react'
-import { useAuth } from '@/contexts/AuthContext'
-import { useTicketDetails, sendMessage } from '@/hooks/useTickets'
-import { useFileUpload } from '@/hooks/useFileUpload'
-import { MessageThread } from '@/components/admin/MessageThread'
-import { MessageInput } from '@/components/admin/MessageInput'
-import { StatusBadge } from '@/components/ui/Badge'
+import { useEffect, useRef } from 'react'
+import { FileText, Image, Film, Download, Lock } from 'lucide-react'
+import { formatFileSize } from '../../lib/utils'
+import { Avatar } from '../ui/Avatar'
+import { Badge } from '../ui/Badge'
+import { MessageInput } from '../admin/MessageInput'
+import { Skeleton, SkeletonAvatar } from '../ui/Skeleton'
+import type { TicketWithDetails, TicketStatus } from '../../types/database'
 
 interface TicketChatProps {
-  ticketId: string
+  ticket: TicketWithDetails | null
+  loading: boolean
+  onSendMessage: (content: string, attachments?: { file_name: string; file_url: string; file_type: string; file_size: number }[]) => Promise<{ error: Error | null }>
 }
 
-export function TicketChat({ ticketId }: TicketChatProps) {
-  const { user } = useAuth()
-  const { ticket, loading, refetch } = useTicketDetails(ticketId)
-  const { uploadFiles, uploading } = useFileUpload()
-  const [sending, setSending] = useState(false)
+const statusVariant: Record<TicketStatus, 'default' | 'warning' | 'success' | 'info'> = {
+  open: 'warning',
+  pending: 'info',
+  resolved: 'success',
+  closed: 'default',
+}
 
-  async function handleSendMessage(content: string, files: File[]) {
-    if (!user) return
-    setSending(true)
-    try {
-      const message = await sendMessage(ticketId, user.id, content)
-      if (files.length > 0) {
-        await uploadFiles(files, message.id)
-      }
-      refetch()
-    } catch (err) {
-      console.error('Failed to send message:', err)
-    } finally {
-      setSending(false)
-    }
-  }
+function formatTime(date: string): string {
+  return new Date(date).toLocaleTimeString('en-US', {
+    hour: 'numeric',
+    minute: '2-digit',
+    hour12: true,
+  })
+}
+
+export function TicketChat({ ticket, loading, onSendMessage }: TicketChatProps) {
+  const bottomRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
+  }, [ticket?.messages])
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-full text-slate-500">
-        Loading...
+      <div className="h-full flex flex-col">
+        <div className="flex-shrink-0 px-4 py-3 border-b border-border">
+          <Skeleton className="h-5 w-24" />
+        </div>
+        <div className="flex-1 p-4 space-y-4">
+          {[...Array(3)].map((_, i) => (
+            <div key={i} className="flex gap-2">
+              <SkeletonAvatar size="sm" />
+              <Skeleton className="flex-1 h-16 rounded-xl" />
+            </div>
+          ))}
+        </div>
       </div>
     )
   }
 
   if (!ticket) {
     return (
-      <div className="flex items-center justify-center h-full text-slate-500">
-        Ticket not found
+      <div className="h-full flex items-center justify-center p-4 text-center">
+        <p className="text-text-secondary">Ticket not found</p>
       </div>
     )
   }
 
+  function getFileIcon(type: string) {
+    if (type.startsWith('image/')) return Image
+    if (type.startsWith('video/')) return Film
+    return FileText
+  }
+
   return (
-    <div className="flex flex-col h-full">
-      {/* Ticket info */}
-      <div className="flex-shrink-0 p-4 border-b border-white/10 bg-[#12121a]">
-        <p className="font-medium text-white text-sm">{ticket.subject}</p>
-        <div className="flex items-center gap-2 mt-1">
-          <StatusBadge status={ticket.status} />
+    <div className="h-full flex flex-col">
+      {/* Status bar */}
+      <div className="flex-shrink-0 px-4 py-2.5 border-b border-border flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <span className="text-sm text-text-secondary">Status:</span>
+          <Badge variant={statusVariant[ticket.status]} dot>{ticket.status}</Badge>
         </div>
       </div>
 
       {/* Messages */}
-      <MessageThread messages={ticket.messages || []} currentUserId={user?.id} />
+      <div className="flex-1 overflow-y-auto p-4 space-y-4">
+        {ticket.messages.map((message) => {
+          const isAdmin = message.sender.role === 'admin'
+
+          return (
+            <div
+              key={message.id}
+              className={`flex gap-2 animate-in fade-in duration-200 ${isAdmin ? '' : 'flex-row-reverse'}`}
+            >
+              <Avatar
+                src={message.sender.avatar_url}
+                name={message.sender.full_name}
+                size="sm"
+              />
+              <div className={`max-w-[80%] ${isAdmin ? '' : 'flex flex-col items-end'}`}>
+                <div className={`flex items-center gap-2 mb-1 ${isAdmin ? '' : 'flex-row-reverse'}`}>
+                  {isAdmin && (
+                    <span className="text-xs px-1.5 py-0.5 bg-amber-500/20 text-amber-400 rounded font-medium">
+                      Support
+                    </span>
+                  )}
+                  <span className="text-xs text-text-muted">
+                    {formatTime(message.created_at)}
+                  </span>
+                </div>
+                <div
+                  className={`inline-block p-3 rounded-2xl ${
+                    isAdmin
+                      ? 'bg-surface-light text-white rounded-tl-md'
+                      : 'bg-amber-500/20 text-white rounded-tr-md'
+                  }`}
+                >
+                  <p className="text-sm whitespace-pre-wrap leading-relaxed">{message.content}</p>
+
+                  {/* Attachments */}
+                  {message.attachments && message.attachments.length > 0 && (
+                    <div className="mt-2 space-y-2">
+                      {message.attachments.map((attachment) => {
+                        const FileIcon = getFileIcon(attachment.file_type)
+
+                        if (attachment.file_type.startsWith('image/')) {
+                          return (
+                            <a
+                              key={attachment.id}
+                              href={attachment.file_url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="block group relative"
+                            >
+                              <img
+                                src={attachment.file_url}
+                                alt={attachment.file_name}
+                                className="max-w-full rounded-lg max-h-32 object-cover transition-opacity group-hover:opacity-90"
+                              />
+                              <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-black/30 rounded-lg">
+                                <Download className="w-5 h-5 text-white" />
+                              </div>
+                            </a>
+                          )
+                        }
+
+                        if (attachment.file_type.startsWith('video/')) {
+                          return (
+                            <video
+                              key={attachment.id}
+                              src={attachment.file_url}
+                              controls
+                              className="max-w-full rounded-lg max-h-32"
+                            />
+                          )
+                        }
+
+                        return (
+                          <a
+                            key={attachment.id}
+                            href={attachment.file_url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="flex items-center gap-2 p-2 bg-surface rounded-lg hover:bg-surface-light/80 transition-colors group"
+                          >
+                            <FileIcon className="w-4 h-4 text-text-secondary" />
+                            <div className="flex-1 min-w-0 text-left">
+                              <p className="text-xs text-white truncate">{attachment.file_name}</p>
+                              <p className="text-xs text-text-muted">
+                                {formatFileSize(attachment.file_size)}
+                              </p>
+                            </div>
+                            <Download className="w-3.5 h-3.5 text-text-muted opacity-0 group-hover:opacity-100 transition-opacity" />
+                          </a>
+                        )
+                      })}
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          )
+        })}
+        <div ref={bottomRef} />
+      </div>
 
       {/* Input */}
-      <div className="flex-shrink-0 border-t border-white/10 bg-[#12121a]">
-        <MessageInput
-          onSend={handleSendMessage}
-          disabled={sending || uploading}
-          placeholder="Type your message..."
-        />
-      </div>
+      {ticket.status !== 'closed' ? (
+        <div className="flex-shrink-0 border-t border-border bg-surface-light/30">
+          <MessageInput onSend={onSendMessage} />
+        </div>
+      ) : (
+        <div className="flex-shrink-0 p-4 border-t border-border bg-surface-light/30">
+          <div className="flex items-center justify-center gap-2 text-text-secondary">
+            <Lock className="w-4 h-4" />
+            <p className="text-sm">This ticket has been closed</p>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

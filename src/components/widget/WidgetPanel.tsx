@@ -1,27 +1,38 @@
 import { useState } from 'react'
+import { ArrowLeft, Plus } from 'lucide-react'
+import { useAuth } from '../../hooks/useAuth'
+import { useTickets, useTicketDetails } from '../../hooks/useTickets'
+import { WidgetLogin } from './WidgetLogin'
 import { TicketList } from './TicketList'
 import { TicketChat } from './TicketChat'
 import { NewTicketForm } from './NewTicketForm'
-import { ChevronLeft, Plus } from 'lucide-react'
+import { Button } from '../ui/Button'
 
-type View = 'list' | 'chat' | 'new'
+type View = 'tickets' | 'chat' | 'new'
 
-interface WidgetPanelProps {
-  onClose: () => void
-}
-
-export function WidgetPanel({ onClose: _onClose }: WidgetPanelProps) {
-  const [view, setView] = useState<View>('list')
+export function WidgetPanel() {
+  const { user, profile, loading: authLoading } = useAuth()
+  const [view, setView] = useState<View>('tickets')
   const [selectedTicketId, setSelectedTicketId] = useState<string | null>(null)
 
-  function handleSelectTicket(ticketId: string) {
-    setSelectedTicketId(ticketId)
-    setView('chat')
+  const { tickets, loading: ticketsLoading } = useTickets()
+  const { ticket, loading: ticketLoading, sendMessage } = useTicketDetails(selectedTicketId)
+
+  if (authLoading) {
+    return (
+      <div className="h-full flex items-center justify-center">
+        <div className="animate-spin w-8 h-8 border-2 border-amber-500 border-t-transparent rounded-full" />
+      </div>
+    )
   }
 
-  function handleBack() {
-    setView('list')
-    setSelectedTicketId(null)
+  if (!user) {
+    return <WidgetLogin />
+  }
+
+  function handleTicketSelect(id: string) {
+    setSelectedTicketId(id)
+    setView('chat')
   }
 
   function handleNewTicket() {
@@ -33,52 +44,68 @@ export function WidgetPanel({ onClose: _onClose }: WidgetPanelProps) {
     setView('chat')
   }
 
+  function handleBack() {
+    setSelectedTicketId(null)
+    setView('tickets')
+  }
+
   return (
-    <div className="absolute bottom-20 right-0 w-[380px] h-[560px] bg-[#12121a] rounded-2xl shadow-2xl flex flex-col overflow-hidden border border-white/10 animate-scale-in origin-bottom-right">
+    <div className="h-full flex flex-col">
       {/* Header */}
-      <div className="flex-shrink-0 bg-[#12121a] border-b border-white/10 px-4 py-4">
+      <div className="flex-shrink-0 p-4 border-b border-border bg-surface">
         <div className="flex items-center gap-3">
-          {view !== 'list' && (
+          {view !== 'tickets' && (
             <button
               onClick={handleBack}
-              className="p-1.5 hover:bg-white/5 rounded-lg transition-colors"
+              className="p-1.5 -ml-1.5 text-text-secondary hover:text-white rounded-lg hover:bg-surface-light"
             >
-              <ChevronLeft className="w-5 h-5 text-slate-400" />
+              <ArrowLeft className="w-5 h-5" />
             </button>
           )}
-          <div className="w-8 h-8 bg-gradient-to-br from-cyan-400 to-cyan-600 rounded-lg flex items-center justify-center">
-            <span className="text-white font-bold text-xs">SB</span>
-          </div>
           <div className="flex-1">
             <h2 className="font-semibold text-white">
-              {view === 'new' ? 'New Message' : 'Support'}
+              {view === 'tickets' && 'Support'}
+              {view === 'chat' && (ticket?.subject || 'Conversation')}
+              {view === 'new' && 'New Ticket'}
             </h2>
+            {view === 'tickets' && (
+              <p className="text-xs text-text-muted">
+                Hi {profile?.full_name?.split(' ')[0] || 'there'}! How can we help?
+              </p>
+            )}
           </div>
-          {view === 'list' && (
-            <button
-              onClick={handleNewTicket}
-              className="p-2 hover:bg-white/5 rounded-lg transition-colors"
-              title="New message"
-            >
-              <Plus className="w-5 h-5 text-slate-400" />
-            </button>
+          {view === 'tickets' && (
+            <Button size="sm" onClick={handleNewTicket}>
+              <Plus className="w-4 h-4 mr-1" />
+              New
+            </Button>
           )}
         </div>
       </div>
 
       {/* Content */}
-      <div className="flex-1 overflow-hidden bg-[#0a0a0f]">
-        {view === 'list' && (
-          <TicketList onSelect={handleSelectTicket} onNewTicket={handleNewTicket} />
+      <div className="flex-1 overflow-hidden">
+        {view === 'tickets' && (
+          <TicketList
+            tickets={tickets}
+            loading={ticketsLoading}
+            onSelect={handleTicketSelect}
+          />
         )}
-        {view === 'chat' && selectedTicketId && (
-          <TicketChat ticketId={selectedTicketId} />
+        {view === 'chat' && (
+          <TicketChat
+            ticket={ticket}
+            loading={ticketLoading}
+            onSendMessage={sendMessage}
+          />
         )}
         {view === 'new' && (
-          <NewTicketForm onSuccess={handleTicketCreated} onCancel={handleBack} />
+          <NewTicketForm
+            onSuccess={handleTicketCreated}
+            onCancel={handleBack}
+          />
         )}
       </div>
-
     </div>
   )
 }

@@ -1,84 +1,74 @@
-import { useState, useEffect } from 'react'
-import { useAuth } from '@/contexts/AuthContext'
-import { supabase } from '@/lib/supabase'
-import { StatusBadge } from '@/components/ui/Badge'
-import { formatRelativeTime } from '@/lib/utils'
 import { MessageSquare, ChevronRight } from 'lucide-react'
-import type { Ticket } from '@/types/database'
+import { formatRelativeTime } from '../../lib/utils'
+import { Badge } from '../ui/Badge'
+import type { TicketWithCustomer, TicketStatus } from '../../types/database'
 
 interface TicketListProps {
-  onSelect: (ticketId: string) => void
-  onNewTicket: () => void
+  tickets: TicketWithCustomer[]
+  loading: boolean
+  onSelect: (id: string) => void
 }
 
-export function TicketList({ onSelect, onNewTicket }: TicketListProps) {
-  const { user } = useAuth()
-  const [tickets, setTickets] = useState<Ticket[]>([])
-  const [loading, setLoading] = useState(true)
+const statusVariant: Record<TicketStatus, 'default' | 'warning' | 'success' | 'info'> = {
+  open: 'warning',
+  pending: 'info',
+  resolved: 'success',
+  closed: 'default',
+}
 
-  useEffect(() => {
-    async function fetchTickets() {
-      if (!user) return
-
-      const { data } = await supabase
-        .from('tickets')
-        .select('*')
-        .eq('customer_id', user.id)
-        .order('updated_at', { ascending: false })
-
-      setTickets(data || [])
-      setLoading(false)
-    }
-
-    fetchTickets()
-  }, [user])
-
+export function TicketList({ tickets, loading, onSelect }: TicketListProps) {
   if (loading) {
     return (
-      <div className="p-8 text-center text-slate-500">
-        Loading your conversations...
+      <div className="p-4 space-y-3">
+        {[...Array(3)].map((_, i) => (
+          <div
+            key={i}
+            className="p-3 bg-surface border border-border rounded-xl animate-pulse"
+          >
+            <div className="h-4 w-3/4 bg-surface-light rounded mb-2" />
+            <div className="h-3 w-1/2 bg-surface-light rounded" />
+          </div>
+        ))}
       </div>
     )
   }
 
   if (tickets.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center h-full p-8 text-center">
-        <div className="w-16 h-16 bg-cyan-500/20 rounded-full flex items-center justify-center mb-4">
-          <MessageSquare className="w-8 h-8 text-cyan-400" />
+      <div className="h-full flex flex-col items-center justify-center p-6 text-center">
+        <div className="w-12 h-12 bg-surface-light rounded-full flex items-center justify-center mb-3">
+          <MessageSquare className="w-6 h-6 text-text-muted" />
         </div>
-        <h3 className="font-medium text-white mb-2">No conversations yet</h3>
-        <p className="text-sm text-slate-400 mb-4">
-          Start a new conversation to get help from our team
+        <p className="text-white font-medium mb-1">No conversations yet</p>
+        <p className="text-sm text-text-secondary">
+          Start a new ticket to get help from our team.
         </p>
-        <button
-          onClick={onNewTicket}
-          className="px-4 py-2 bg-gradient-to-r from-cyan-500 to-cyan-600 text-white rounded-lg text-sm font-medium hover:from-cyan-400 hover:to-cyan-500 transition-all"
-        >
-          Start a conversation
-        </button>
       </div>
     )
   }
 
   return (
-    <div className="divide-y divide-white/5 overflow-y-auto h-full">
+    <div className="p-4 space-y-2 overflow-y-auto h-full">
       {tickets.map((ticket) => (
         <button
           key={ticket.id}
           onClick={() => onSelect(ticket.id)}
-          className="w-full p-4 text-left hover:bg-white/5 transition-colors flex items-center gap-3"
+          className="w-full p-3 text-left bg-surface border border-border rounded-xl hover:border-white/20 transition-colors group"
         >
-          <div className="flex-1 min-w-0">
-            <p className="font-medium text-white truncate">{ticket.subject}</p>
-            <div className="flex items-center gap-2 mt-1">
-              <StatusBadge status={ticket.status} />
-              <span className="text-xs text-slate-500">
-                {formatRelativeTime(ticket.updated_at)}
-              </span>
+          <div className="flex items-start justify-between gap-2">
+            <div className="flex-1 min-w-0">
+              <p className="font-medium text-white truncate">{ticket.subject}</p>
+              <div className="flex items-center gap-2 mt-1.5">
+                <Badge variant={statusVariant[ticket.status]} size="sm">
+                  {ticket.status}
+                </Badge>
+                <span className="text-xs text-text-muted">
+                  {formatRelativeTime(ticket.updated_at)}
+                </span>
+              </div>
             </div>
+            <ChevronRight className="w-5 h-5 text-text-muted group-hover:text-white transition-colors" />
           </div>
-          <ChevronRight className="w-5 h-5 text-slate-500 flex-shrink-0" />
         </button>
       ))}
     </div>

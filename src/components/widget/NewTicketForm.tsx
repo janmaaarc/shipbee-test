@@ -1,8 +1,10 @@
 import { useState } from 'react'
-import { useAuth } from '@/contexts/AuthContext'
-import { createTicket } from '@/hooks/useTickets'
-import { Input } from '@/components/ui/Input'
-import { Button } from '@/components/ui/Button'
+import { Send } from 'lucide-react'
+import { Button } from '../ui/Button'
+import { Input } from '../ui/Input'
+import { Textarea } from '../ui/Textarea'
+import { useCreateTicket } from '../../hooks/useTickets'
+import { useToast } from '../ui/Toast'
 
 interface NewTicketFormProps {
   onSuccess: (ticketId: string) => void
@@ -10,62 +12,57 @@ interface NewTicketFormProps {
 }
 
 export function NewTicketForm({ onSuccess, onCancel }: NewTicketFormProps) {
-  const { user } = useAuth()
   const [subject, setSubject] = useState('')
   const [message, setMessage] = useState('')
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState<string | null>(null)
+  const [error, setError] = useState('')
+  const { createTicket, loading } = useCreateTicket()
+  const { addToast } = useToast()
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
-    if (!user || !subject.trim() || !message.trim()) return
+    setError('')
 
-    setLoading(true)
-    setError(null)
+    if (!subject.trim() || !message.trim()) {
+      setError('Please fill in all fields')
+      return
+    }
 
-    try {
-      const ticket = await createTicket(user.id, subject, message)
-      onSuccess(ticket.id)
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to create ticket')
-    } finally {
-      setLoading(false)
+    const { error, ticketId } = await createTicket(subject, message)
+
+    if (error) {
+      setError(error.message)
+      addToast('error', 'Failed to create ticket')
+    } else if (ticketId) {
+      addToast('success', 'Ticket created successfully')
+      onSuccess(ticketId)
     }
   }
 
   return (
-    <form onSubmit={handleSubmit} className="p-4 space-y-4 h-full flex flex-col">
-      <div>
-        <label className="block text-sm font-medium text-slate-300 mb-1">
-          Subject
-        </label>
-        <Input
-          type="text"
-          placeholder="What do you need help with?"
-          value={subject}
-          onChange={(e) => setSubject(e.target.value)}
-          required
-        />
-      </div>
+    <form onSubmit={handleSubmit} className="p-4 space-y-4 h-full overflow-y-auto">
+      <Input
+        label="Subject"
+        placeholder="What do you need help with?"
+        value={subject}
+        onChange={(e) => setSubject(e.target.value)}
+        required
+        aria-describedby={error ? 'form-error' : undefined}
+      />
 
-      <div className="flex-1">
-        <label className="block text-sm font-medium text-slate-300 mb-1">
-          Message
-        </label>
-        <textarea
-          placeholder="Describe your issue or question..."
-          value={message}
-          onChange={(e) => setMessage(e.target.value)}
-          required
-          className="w-full h-32 px-3 py-2 bg-[#1a1a24] border border-white/10 rounded-xl text-sm text-white resize-none focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent placeholder:text-slate-500"
-        />
-      </div>
+      <Textarea
+        label="Message"
+        placeholder="Describe your issue in detail..."
+        value={message}
+        onChange={(e) => setMessage(e.target.value)}
+        rows={4}
+        required
+      />
 
       {error && (
-        <p className="text-sm text-red-400">{error}</p>
+        <p id="form-error" className="text-sm text-red-400" role="alert">{error}</p>
       )}
 
-      <div className="flex gap-3">
+      <div className="flex gap-2 pt-2">
         <Button
           type="button"
           variant="secondary"
@@ -76,10 +73,11 @@ export function NewTicketForm({ onSuccess, onCancel }: NewTicketFormProps) {
         </Button>
         <Button
           type="submit"
-          disabled={loading || !subject.trim() || !message.trim()}
+          loading={loading}
           className="flex-1"
         >
-          {loading ? 'Sending...' : 'Send'}
+          <Send className="w-4 h-4 mr-1.5" />
+          Submit
         </Button>
       </div>
     </form>

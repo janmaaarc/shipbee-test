@@ -1,69 +1,47 @@
-import type { ReactNode } from 'react'
-import { cn } from '@/lib/utils'
-
-type BadgeVariant = 'default' | 'success' | 'warning' | 'danger' | 'info'
+import { cn } from '../../lib/utils'
 
 interface BadgeProps {
-  children: ReactNode
-  variant?: BadgeVariant
+  children: React.ReactNode
+  variant?: 'default' | 'success' | 'warning' | 'error' | 'info'
+  size?: 'sm' | 'md'
+  dot?: boolean
   className?: string
 }
 
-const variantStyles: Record<BadgeVariant, string> = {
-  default: 'bg-slate-500/20 text-slate-400',
-  success: 'bg-emerald-500/20 text-emerald-400',
-  warning: 'bg-amber-500/20 text-amber-400',
-  danger: 'bg-red-500/20 text-red-400',
-  info: 'bg-cyan-500/20 text-cyan-400',
-}
-
-export function Badge({ children, variant = 'default', className }: BadgeProps) {
+export function Badge({ children, variant = 'default', size = 'sm', dot = false, className }: BadgeProps) {
   return (
     <span
       className={cn(
-        'inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium',
-        variantStyles[variant],
+        'inline-flex items-center font-medium rounded-full capitalize',
+        {
+          'bg-white/10 text-text-secondary': variant === 'default',
+          'bg-emerald-500/15 text-emerald-400': variant === 'success',
+          'bg-amber-500/15 text-amber-400': variant === 'warning',
+          'bg-red-500/15 text-red-400': variant === 'error',
+          'bg-blue-500/15 text-blue-400': variant === 'info',
+        },
+        {
+          'px-2 py-0.5 text-xs gap-1': size === 'sm',
+          'px-2.5 py-1 text-sm gap-1.5': size === 'md',
+        },
         className
       )}
     >
+      {dot && (
+        <span
+          className={cn(
+            'w-1.5 h-1.5 rounded-full',
+            {
+              'bg-white/50': variant === 'default',
+              'bg-emerald-400': variant === 'success',
+              'bg-amber-400': variant === 'warning',
+              'bg-red-400': variant === 'error',
+              'bg-blue-400': variant === 'info',
+            }
+          )}
+        />
+      )}
       {children}
     </span>
-  )
-}
-
-export function StatusBadge({ status }: { status: string }) {
-  const variants: Record<string, BadgeVariant> = {
-    open: 'info',
-    pending: 'warning',
-    resolved: 'success',
-    closed: 'default',
-  }
-
-  const labels: Record<string, string> = {
-    open: 'Open',
-    pending: 'Pending',
-    resolved: 'Resolved',
-    closed: 'Closed',
-  }
-
-  return (
-    <Badge variant={variants[status] || 'default'}>
-      {labels[status] || status}
-    </Badge>
-  )
-}
-
-export function PriorityBadge({ priority }: { priority: string }) {
-  const variants: Record<string, BadgeVariant> = {
-    low: 'default',
-    medium: 'info',
-    high: 'warning',
-    urgent: 'danger',
-  }
-
-  return (
-    <Badge variant={variants[priority] || 'default'}>
-      {priority.charAt(0).toUpperCase() + priority.slice(1)}
-    </Badge>
   )
 }

@@ -1,391 +1,387 @@
--- ShipBee Support - Initial Schema
+-- ShipBee Support Database Schema
 -- Run this in Supabase SQL Editor
 
--- ============================================
--- CLEANUP (Drop existing objects)
--- ============================================
-
--- Drop storage policies (storage.objects always exists)
-DROP POLICY IF EXISTS "Authenticated users can upload attachments" ON storage.objects;
-DROP POLICY IF EXISTS "Users can view attachments they have access to" ON storage.objects;
-DROP POLICY IF EXISTS "Authenticated users can upload" ON storage.objects;
-DROP POLICY IF EXISTS "Authenticated users can view" ON storage.objects;
-DROP POLICY IF EXISTS "Users can delete own uploads" ON storage.objects;
-DROP POLICY IF EXISTS "Users can delete own attachments" ON storage.objects;
-
--- Drop trigger on auth.users
-DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
-
--- Drop tables (CASCADE will drop policies, triggers, and indexes)
-DROP TABLE IF EXISTS attachments CASCADE;
-DROP TABLE IF EXISTS messages CASCADE;
-DROP TABLE IF EXISTS tickets CASCADE;
-DROP TABLE IF EXISTS profiles CASCADE;
-
--- Drop functions
-DROP FUNCTION IF EXISTS handle_new_user() CASCADE;
-DROP FUNCTION IF EXISTS update_updated_at() CASCADE;
-DROP FUNCTION IF EXISTS get_ticket_details(UUID) CASCADE;
-DROP FUNCTION IF EXISTS get_admin_stats() CASCADE;
-
--- Drop types (CASCADE will drop functions that depend on them)
-DROP TYPE IF EXISTS ticket_status CASCADE;
-DROP TYPE IF EXISTS ticket_priority CASCADE;
-DROP TYPE IF EXISTS user_role CASCADE;
-
--- ============================================
--- CREATE SCHEMA
--- ============================================
-
--- Enable UUID extension
-CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+-- Enable necessary extensions
+create extension if not exists "uuid-ossp";
 
 -- Create custom types
-CREATE TYPE ticket_status AS ENUM ('open', 'pending', 'resolved', 'closed');
-CREATE TYPE ticket_priority AS ENUM ('low', 'medium', 'high', 'urgent');
-CREATE TYPE user_role AS ENUM ('customer', 'admin');
+create type user_role as enum ('customer', 'admin');
+create type ticket_status as enum ('open', 'pending', 'resolved', 'closed');
+create type ticket_priority as enum ('low', 'medium', 'high', 'urgent');
 
--- Profiles table (extends Supabase auth.users)
-CREATE TABLE profiles (
-    id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
-    email TEXT NOT NULL,
-    full_name TEXT,
-    avatar_url TEXT,
-    role user_role DEFAULT 'customer' NOT NULL,
-    created_at TIMESTAMPTZ DEFAULT NOW() NOT NULL
+-- Profiles table (extends auth.users)
+create table profiles (
+  id uuid primary key references auth.users(id) on delete cascade,
+  email text not null,
+  full_name text,
+  avatar_url text,
+  role user_role not null default 'customer',
+  created_at timestamptz not null default now()
 );
 
 -- Tickets table
-CREATE TABLE tickets (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    customer_id UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
-    subject TEXT NOT NULL,
-    status ticket_status DEFAULT 'open' NOT NULL,
-    priority ticket_priority DEFAULT 'medium' NOT NULL,
-    assigned_to UUID REFERENCES profiles(id) ON DELETE SET NULL,
-    created_at TIMESTAMPTZ DEFAULT NOW() NOT NULL,
-    updated_at TIMESTAMPTZ DEFAULT NOW() NOT NULL
+create table tickets (
+  id uuid primary key default uuid_generate_v4(),
+  customer_id uuid not null references profiles(id) on delete cascade,
+  subject text not null,
+  status ticket_status not null default 'open',
+  priority ticket_priority not null default 'medium',
+  assigned_to uuid references profiles(id) on delete set null,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
 );
 
 -- Messages table
-CREATE TABLE messages (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    ticket_id UUID NOT NULL REFERENCES tickets(id) ON DELETE CASCADE,
-    sender_id UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
-    content TEXT NOT NULL,
-    created_at TIMESTAMPTZ DEFAULT NOW() NOT NULL
+create table messages (
+  id uuid primary key default uuid_generate_v4(),
+  ticket_id uuid not null references tickets(id) on delete cascade,
+  sender_id uuid not null references profiles(id) on delete cascade,
+  content text not null,
+  created_at timestamptz not null default now()
 );
 
 -- Attachments table
-CREATE TABLE attachments (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    message_id UUID NOT NULL REFERENCES messages(id) ON DELETE CASCADE,
-    file_name TEXT NOT NULL,
-    file_url TEXT NOT NULL,
-    file_type TEXT NOT NULL,
-    file_size INTEGER NOT NULL,
-    created_at TIMESTAMPTZ DEFAULT NOW() NOT NULL
+create table attachments (
+  id uuid primary key default uuid_generate_v4(),
+  message_id uuid not null references messages(id) on delete cascade,
+  file_name text not null,
+  file_url text not null,
+  file_type text not null,
+  file_size bigint not null,
+  created_at timestamptz not null default now()
 );
 
--- Indexes for performance
-CREATE INDEX idx_tickets_customer_id ON tickets(customer_id);
-CREATE INDEX idx_tickets_status ON tickets(status);
-CREATE INDEX idx_tickets_assigned_to ON tickets(assigned_to);
-CREATE INDEX idx_tickets_created_at ON tickets(created_at DESC);
-CREATE INDEX idx_messages_ticket_id ON messages(ticket_id);
-CREATE INDEX idx_messages_created_at ON messages(created_at);
-CREATE INDEX idx_attachments_message_id ON attachments(message_id);
+-- Create indexes for better query performance
+create index idx_tickets_customer_id on tickets(customer_id);
+create index idx_tickets_status on tickets(status);
+create index idx_tickets_assigned_to on tickets(assigned_to);
+create index idx_tickets_created_at on tickets(created_at desc);
+create index idx_messages_ticket_id on messages(ticket_id);
+create index idx_messages_created_at on messages(created_at);
+create index idx_attachments_message_id on attachments(message_id);
 
--- Auto-update updated_at trigger
-CREATE OR REPLACE FUNCTION update_updated_at()
-RETURNS TRIGGER AS $$
-BEGIN
-    NEW.updated_at = NOW();
-    RETURN NEW;
-END;
-$$ LANGUAGE plpgsql;
+-- Function to update updated_at timestamp
+create or replace function update_updated_at()
+returns trigger as $$
+begin
+  new.updated_at = now();
+  return new;
+end;
+$$ language plpgsql;
 
-CREATE TRIGGER tickets_updated_at
-    BEFORE UPDATE ON tickets
-    FOR EACH ROW
-    EXECUTE FUNCTION update_updated_at();
+-- Trigger to auto-update updated_at on tickets
+create trigger tickets_updated_at
+  before update on tickets
+  for each row
+  execute function update_updated_at();
 
 -- Function to create profile on signup
-CREATE OR REPLACE FUNCTION handle_new_user()
-RETURNS TRIGGER AS $$
-BEGIN
-    INSERT INTO profiles (id, email, full_name, avatar_url, role)
-    VALUES (
-        NEW.id,
-        NEW.email,
-        COALESCE(NEW.raw_user_meta_data->>'full_name', split_part(NEW.email, '@', 1)),
-        NEW.raw_user_meta_data->>'avatar_url',
-        COALESCE((NEW.raw_user_meta_data->>'role')::user_role, 'customer')
-    );
-    RETURN NEW;
-END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
+create or replace function handle_new_user()
+returns trigger as $$
+begin
+  insert into profiles (id, email, full_name, role)
+  values (
+    new.id,
+    new.email,
+    coalesce(new.raw_user_meta_data->>'full_name', split_part(new.email, '@', 1)),
+    coalesce((new.raw_user_meta_data->>'role')::user_role, 'customer')
+  );
+  return new;
+end;
+$$ language plpgsql security definer;
 
-CREATE TRIGGER on_auth_user_created
-    AFTER INSERT ON auth.users
-    FOR EACH ROW
-    EXECUTE FUNCTION handle_new_user();
+-- Trigger to create profile when user signs up
+create trigger on_auth_user_created
+  after insert on auth.users
+  for each row
+  execute function handle_new_user();
 
--- ============================================
--- Row Level Security (RLS) Policies
--- ============================================
+-- Enable Row Level Security
+alter table profiles enable row level security;
+alter table tickets enable row level security;
+alter table messages enable row level security;
+alter table attachments enable row level security;
 
-ALTER TABLE profiles ENABLE ROW LEVEL SECURITY;
-ALTER TABLE tickets ENABLE ROW LEVEL SECURITY;
-ALTER TABLE messages ENABLE ROW LEVEL SECURITY;
-ALTER TABLE attachments ENABLE ROW LEVEL SECURITY;
+-- RLS Policies for profiles
+create policy "Users can view their own profile"
+  on profiles for select
+  using (auth.uid() = id);
 
--- Profiles: Users can read all profiles, update own
-CREATE POLICY "Profiles are viewable by authenticated users"
-    ON profiles FOR SELECT
-    TO authenticated
-    USING (true);
+create policy "Admins can view all profiles"
+  on profiles for select
+  using (
+    exists (
+      select 1 from profiles
+      where id = auth.uid() and role = 'admin'
+    )
+  );
 
-CREATE POLICY "Users can update own profile"
-    ON profiles FOR UPDATE
-    TO authenticated
-    USING (auth.uid() = id);
+create policy "Users can update their own profile"
+  on profiles for update
+  using (auth.uid() = id)
+  with check (auth.uid() = id);
 
--- Tickets: Customers see own, admins see all
-CREATE POLICY "Customers can view own tickets"
-    ON tickets FOR SELECT
-    TO authenticated
-    USING (
-        customer_id = auth.uid() OR
-        EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role = 'admin')
-    );
+-- RLS Policies for tickets
+create policy "Customers can view their own tickets"
+  on tickets for select
+  using (customer_id = auth.uid());
 
-CREATE POLICY "Customers can create tickets"
-    ON tickets FOR INSERT
-    TO authenticated
-    WITH CHECK (customer_id = auth.uid());
+create policy "Admins can view all tickets"
+  on tickets for select
+  using (
+    exists (
+      select 1 from profiles
+      where id = auth.uid() and role = 'admin'
+    )
+  );
 
-CREATE POLICY "Admins can update any ticket"
-    ON tickets FOR UPDATE
-    TO authenticated
-    USING (EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role = 'admin'));
+create policy "Customers can create tickets"
+  on tickets for insert
+  with check (customer_id = auth.uid());
 
--- Messages: Users can read messages for tickets they have access to
-CREATE POLICY "Users can view messages for accessible tickets"
-    ON messages FOR SELECT
-    TO authenticated
-    USING (
-        EXISTS (
-            SELECT 1 FROM tickets t
-            WHERE t.id = ticket_id
-            AND (t.customer_id = auth.uid() OR EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role = 'admin'))
-        )
-    );
+create policy "Admins can update any ticket"
+  on tickets for update
+  using (
+    exists (
+      select 1 from profiles
+      where id = auth.uid() and role = 'admin'
+    )
+  );
 
-CREATE POLICY "Users can send messages to accessible tickets"
-    ON messages FOR INSERT
-    TO authenticated
-    WITH CHECK (
-        sender_id = auth.uid() AND
-        EXISTS (
-            SELECT 1 FROM tickets t
-            WHERE t.id = ticket_id
-            AND (t.customer_id = auth.uid() OR EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role = 'admin'))
-        )
-    );
+create policy "Customers can update their own tickets"
+  on tickets for update
+  using (customer_id = auth.uid())
+  with check (customer_id = auth.uid());
 
--- Attachments: Same access as messages
-CREATE POLICY "Users can view attachments for accessible messages"
-    ON attachments FOR SELECT
-    TO authenticated
-    USING (
-        EXISTS (
-            SELECT 1 FROM messages m
-            JOIN tickets t ON t.id = m.ticket_id
-            WHERE m.id = message_id
-            AND (t.customer_id = auth.uid() OR EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role = 'admin'))
-        )
-    );
+-- RLS Policies for messages
+create policy "Users can view messages on their tickets"
+  on messages for select
+  using (
+    exists (
+      select 1 from tickets
+      where tickets.id = messages.ticket_id
+      and (tickets.customer_id = auth.uid() or exists (
+        select 1 from profiles where id = auth.uid() and role = 'admin'
+      ))
+    )
+  );
 
-CREATE POLICY "Users can upload attachments to own messages"
-    ON attachments FOR INSERT
-    TO authenticated
-    WITH CHECK (
-        EXISTS (
-            SELECT 1 FROM messages m
-            WHERE m.id = message_id
-            AND m.sender_id = auth.uid()
-        )
-    );
+create policy "Users can send messages on their tickets"
+  on messages for insert
+  with check (
+    sender_id = auth.uid() and
+    exists (
+      select 1 from tickets
+      where tickets.id = ticket_id
+      and (tickets.customer_id = auth.uid() or exists (
+        select 1 from profiles where id = auth.uid() and role = 'admin'
+      ))
+    )
+  );
+
+-- RLS Policies for attachments
+create policy "Users can view attachments on their ticket messages"
+  on attachments for select
+  using (
+    exists (
+      select 1 from messages
+      join tickets on tickets.id = messages.ticket_id
+      where messages.id = attachments.message_id
+      and (tickets.customer_id = auth.uid() or exists (
+        select 1 from profiles where id = auth.uid() and role = 'admin'
+      ))
+    )
+  );
+
+create policy "Users can add attachments to their messages"
+  on attachments for insert
+  with check (
+    exists (
+      select 1 from messages
+      where messages.id = message_id
+      and messages.sender_id = auth.uid()
+    )
+  );
+
+-- Enable realtime for tickets and messages
+alter publication supabase_realtime add table tickets;
+alter publication supabase_realtime add table messages;
 
 -- ============================================
 -- RPC Functions
 -- ============================================
 
--- Get ticket with all details (messages, attachments, profiles)
-CREATE OR REPLACE FUNCTION get_ticket_details(p_ticket_id UUID)
-RETURNS JSON AS $$
-DECLARE
-    result JSON;
-BEGIN
-    SELECT json_build_object(
-        'id', t.id,
-        'subject', t.subject,
-        'status', t.status,
-        'priority', t.priority,
-        'created_at', t.created_at,
-        'updated_at', t.updated_at,
-        'customer', json_build_object(
-            'id', c.id,
-            'email', c.email,
-            'full_name', c.full_name,
-            'avatar_url', c.avatar_url,
-            'role', c.role
-        ),
-        'assigned_agent', CASE WHEN a.id IS NOT NULL THEN json_build_object(
-            'id', a.id,
-            'email', a.email,
-            'full_name', a.full_name,
-            'avatar_url', a.avatar_url,
-            'role', a.role
-        ) ELSE NULL END,
-        'messages', COALESCE((
-            SELECT json_agg(
-                json_build_object(
-                    'id', m.id,
-                    'content', m.content,
-                    'created_at', m.created_at,
-                    'sender', json_build_object(
-                        'id', s.id,
-                        'email', s.email,
-                        'full_name', s.full_name,
-                        'avatar_url', s.avatar_url,
-                        'role', s.role
-                    ),
-                    'attachments', COALESCE((
-                        SELECT json_agg(
-                            json_build_object(
-                                'id', att.id,
-                                'file_name', att.file_name,
-                                'file_url', att.file_url,
-                                'file_type', att.file_type,
-                                'file_size', att.file_size
-                            )
-                        ) FROM attachments att WHERE att.message_id = m.id
-                    ), '[]'::json)
-                )
-                ORDER BY m.created_at ASC
+-- Get ticket details with messages and attachments
+create or replace function get_ticket_details(p_ticket_id uuid)
+returns json as $$
+declare
+  result json;
+begin
+  select json_build_object(
+    'id', t.id,
+    'customer_id', t.customer_id,
+    'subject', t.subject,
+    'status', t.status,
+    'priority', t.priority,
+    'assigned_to', t.assigned_to,
+    'created_at', t.created_at,
+    'updated_at', t.updated_at,
+    'customer', json_build_object(
+      'id', c.id,
+      'email', c.email,
+      'full_name', c.full_name,
+      'avatar_url', c.avatar_url,
+      'role', c.role
+    ),
+    'assigned_admin', case when a.id is not null then json_build_object(
+      'id', a.id,
+      'email', a.email,
+      'full_name', a.full_name,
+      'avatar_url', a.avatar_url,
+      'role', a.role
+    ) else null end,
+    'messages', coalesce((
+      select json_agg(
+        json_build_object(
+          'id', m.id,
+          'ticket_id', m.ticket_id,
+          'sender_id', m.sender_id,
+          'content', m.content,
+          'created_at', m.created_at,
+          'sender', json_build_object(
+            'id', s.id,
+            'email', s.email,
+            'full_name', s.full_name,
+            'avatar_url', s.avatar_url,
+            'role', s.role
+          ),
+          'attachments', coalesce((
+            select json_agg(
+              json_build_object(
+                'id', att.id,
+                'message_id', att.message_id,
+                'file_name', att.file_name,
+                'file_url', att.file_url,
+                'file_type', att.file_type,
+                'file_size', att.file_size,
+                'created_at', att.created_at
+              )
             )
-            FROM messages m
-            JOIN profiles s ON s.id = m.sender_id
-            WHERE m.ticket_id = t.id
-        ), '[]'::json)
-    ) INTO result
-    FROM tickets t
-    JOIN profiles c ON c.id = t.customer_id
-    LEFT JOIN profiles a ON a.id = t.assigned_to
-    WHERE t.id = p_ticket_id;
+            from attachments att
+            where att.message_id = m.id
+          ), '[]'::json)
+        )
+        order by m.created_at asc
+      )
+      from messages m
+      join profiles s on s.id = m.sender_id
+      where m.ticket_id = t.id
+    ), '[]'::json)
+  ) into result
+  from tickets t
+  join profiles c on c.id = t.customer_id
+  left join profiles a on a.id = t.assigned_to
+  where t.id = p_ticket_id
+  and (
+    t.customer_id = auth.uid()
+    or exists (select 1 from profiles where id = auth.uid() and role = 'admin')
+  );
 
-    RETURN result;
-END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
+  return result;
+end;
+$$ language plpgsql security definer;
 
 -- Get admin dashboard statistics
-CREATE OR REPLACE FUNCTION get_admin_stats()
-RETURNS JSON AS $$
-DECLARE
-    result JSON;
-BEGIN
-    SELECT json_build_object(
-        'total', COUNT(*),
-        'open', COUNT(*) FILTER (WHERE status = 'open'),
-        'pending', COUNT(*) FILTER (WHERE status = 'pending'),
-        'resolved', COUNT(*) FILTER (WHERE status = 'resolved'),
-        'closed', COUNT(*) FILTER (WHERE status = 'closed')
-    ) INTO result
-    FROM tickets;
+create or replace function get_admin_stats()
+returns json as $$
+declare
+  result json;
+begin
+  -- Only allow admins
+  if not exists (select 1 from profiles where id = auth.uid() and role = 'admin') then
+    raise exception 'Unauthorized';
+  end if;
 
-    RETURN result;
-END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
+  select json_build_object(
+    'total_tickets', (select count(*) from tickets),
+    'open_tickets', (select count(*) from tickets where status = 'open'),
+    'pending_tickets', (select count(*) from tickets where status = 'pending'),
+    'resolved_today', (
+      select count(*) from tickets
+      where status = 'resolved'
+      and updated_at >= current_date
+    )
+  ) into result;
+
+  return result;
+end;
+$$ language plpgsql security definer;
 
 -- Search tickets with filters
-CREATE OR REPLACE FUNCTION search_tickets(
-    search_term TEXT DEFAULT '',
-    status_filter ticket_status[] DEFAULT NULL
+create or replace function search_tickets(
+  search_term text default '',
+  status_filter ticket_status[] default null,
+  priority_filter ticket_priority[] default null
 )
-RETURNS JSON AS $$
-BEGIN
-    RETURN (
-        SELECT COALESCE(json_agg(
-            json_build_object(
-                'id', t.id,
-                'subject', t.subject,
-                'status', t.status,
-                'priority', t.priority,
-                'created_at', t.created_at,
-                'updated_at', t.updated_at,
-                'customer', json_build_object(
-                    'id', c.id,
-                    'email', c.email,
-                    'full_name', c.full_name
-                ),
-                'last_message', (
-                    SELECT json_build_object(
-                        'content', m.content,
-                        'created_at', m.created_at
-                    )
-                    FROM messages m
-                    WHERE m.ticket_id = t.id
-                    ORDER BY m.created_at DESC
-                    LIMIT 1
-                )
-            )
-            ORDER BY t.updated_at DESC
-        ), '[]'::json)
-        FROM tickets t
-        JOIN profiles c ON c.id = t.customer_id
-        WHERE (search_term = '' OR t.subject ILIKE '%' || search_term || '%' OR c.email ILIKE '%' || search_term || '%')
-        AND (status_filter IS NULL OR t.status = ANY(status_filter))
-    );
-END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
+returns json as $$
+declare
+  result json;
+  is_admin boolean;
+begin
+  select exists (
+    select 1 from profiles where id = auth.uid() and role = 'admin'
+  ) into is_admin;
+
+  select coalesce(json_agg(
+    json_build_object(
+      'id', t.id,
+      'customer_id', t.customer_id,
+      'subject', t.subject,
+      'status', t.status,
+      'priority', t.priority,
+      'assigned_to', t.assigned_to,
+      'created_at', t.created_at,
+      'updated_at', t.updated_at,
+      'customer', json_build_object(
+        'id', c.id,
+        'email', c.email,
+        'full_name', c.full_name,
+        'avatar_url', c.avatar_url,
+        'role', c.role
+      )
+    )
+    order by t.created_at desc
+  ), '[]'::json) into result
+  from tickets t
+  join profiles c on c.id = t.customer_id
+  where (
+    is_admin or t.customer_id = auth.uid()
+  )
+  and (
+    search_term = ''
+    or t.subject ilike '%' || search_term || '%'
+    or c.full_name ilike '%' || search_term || '%'
+    or c.email ilike '%' || search_term || '%'
+  )
+  and (status_filter is null or t.status = any(status_filter))
+  and (priority_filter is null or t.priority = any(priority_filter));
+
+  return result;
+end;
+$$ language plpgsql security definer;
 
 -- ============================================
--- Storage bucket for attachments
+-- Storage Setup
 -- ============================================
 
-INSERT INTO storage.buckets (id, name, public)
-VALUES ('attachments', 'attachments', false)
-ON CONFLICT (id) DO NOTHING;
+-- Create storage bucket for attachments (run in Supabase dashboard)
+-- insert into storage.buckets (id, name, public) values ('attachments', 'attachments', false);
 
-CREATE POLICY "Authenticated users can upload attachments"
-ON storage.objects FOR INSERT
-TO authenticated
-WITH CHECK (bucket_id = 'attachments');
+-- Storage policies
+-- create policy "Users can upload attachments"
+--   on storage.objects for insert
+--   with check (bucket_id = 'attachments' and auth.role() = 'authenticated');
 
-CREATE POLICY "Users can view attachments they have access to"
-ON storage.objects FOR SELECT
-TO authenticated
-USING (bucket_id = 'attachments');
-
--- ============================================
--- Enable Realtime
--- ============================================
-
-DO $$
-BEGIN
-    IF NOT EXISTS (
-        SELECT 1 FROM pg_publication_tables
-        WHERE pubname = 'supabase_realtime' AND tablename = 'tickets'
-    ) THEN
-        ALTER PUBLICATION supabase_realtime ADD TABLE tickets;
-    END IF;
-
-    IF NOT EXISTS (
-        SELECT 1 FROM pg_publication_tables
-        WHERE pubname = 'supabase_realtime' AND tablename = 'messages'
-    ) THEN
-        ALTER PUBLICATION supabase_realtime ADD TABLE messages;
-    END IF;
-END $$;
+-- create policy "Users can view attachments"
+--   on storage.objects for select
+--   using (bucket_id = 'attachments' and auth.role() = 'authenticated');
