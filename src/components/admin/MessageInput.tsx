@@ -49,17 +49,17 @@ export function MessageInput({ onSend, disabled, placeholder }: MessageInputProp
           {files.map((file, index) => (
             <div
               key={index}
-              className="flex items-center gap-2 bg-slate-100 rounded-lg px-3 py-2"
+              className="flex items-center gap-2 bg-white/5 border border-white/10 rounded-lg px-3 py-2"
             >
-              {getFileIcon(file.type)}
+              <span className="text-slate-400">{getFileIcon(file.type)}</span>
               <div className="max-w-[150px]">
-                <p className="text-sm text-slate-700 truncate">{file.name}</p>
+                <p className="text-sm text-slate-200 truncate">{file.name}</p>
                 <p className="text-xs text-slate-500">{formatFileSize(file.size)}</p>
               </div>
               <button
                 type="button"
                 onClick={() => removeFile(index)}
-                className="text-slate-400 hover:text-slate-600"
+                className="text-slate-500 hover:text-slate-300"
               >
                 <X className="w-4 h-4" />
               </button>
@@ -76,7 +76,7 @@ export function MessageInput({ onSend, disabled, placeholder }: MessageInputProp
             placeholder={placeholder || 'Type a message...'}
             disabled={disabled}
             rows={1}
-            className="w-full resize-none border border-slate-300 rounded-lg px-4 py-3 pr-12 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent disabled:bg-slate-50 disabled:text-slate-500"
+            className="w-full resize-none bg-[#1a1a24] border border-white/10 rounded-xl px-4 py-3 pr-12 text-sm text-white placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent disabled:bg-[#12121a] disabled:text-slate-500"
             onKeyDown={(e) => {
               if (e.key === 'Enter' && !e.shiftKey) {
                 e.preventDefault()
@@ -96,7 +96,7 @@ export function MessageInput({ onSend, disabled, placeholder }: MessageInputProp
             type="button"
             onClick={() => fileInputRef.current?.click()}
             disabled={disabled}
-            className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 disabled:opacity-50"
+            className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300 disabled:opacity-50"
           >
             <Paperclip className="w-5 h-5" />
           </button>

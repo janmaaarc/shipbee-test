@@ -44,16 +44,16 @@ export function TicketList({ onSelect, onNewTicket }: TicketListProps) {
   if (tickets.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center h-full p-8 text-center">
-        <div className="w-16 h-16 bg-amber-100 rounded-full flex items-center justify-center mb-4">
-          <MessageSquare className="w-8 h-8 text-amber-500" />
+        <div className="w-16 h-16 bg-cyan-500/20 rounded-full flex items-center justify-center mb-4">
+          <MessageSquare className="w-8 h-8 text-cyan-400" />
         </div>
-        <h3 className="font-medium text-slate-900 mb-2">No conversations yet</h3>
-        <p className="text-sm text-slate-500 mb-4">
+        <h3 className="font-medium text-white mb-2">No conversations yet</h3>
+        <p className="text-sm text-slate-400 mb-4">
           Start a new conversation to get help from our team
         </p>
         <button
           onClick={onNewTicket}
-          className="px-4 py-2 bg-amber-500 text-white rounded-lg text-sm font-medium hover:bg-amber-600 transition-colors"
+          className="px-4 py-2 bg-gradient-to-r from-cyan-500 to-cyan-600 text-white rounded-lg text-sm font-medium hover:from-cyan-400 hover:to-cyan-500 transition-all"
         >
           Start a conversation
         </button>
@@ -62,15 +62,15 @@ export function TicketList({ onSelect, onNewTicket }: TicketListProps) {
   }
 
   return (
-    <div className="divide-y divide-slate-100 overflow-y-auto h-full">
+    <div className="divide-y divide-white/5 overflow-y-auto h-full">
       {tickets.map((ticket) => (
         <button
           key={ticket.id}
           onClick={() => onSelect(ticket.id)}
-          className="w-full p-4 text-left hover:bg-slate-50 transition-colors flex items-center gap-3"
+          className="w-full p-4 text-left hover:bg-white/5 transition-colors flex items-center gap-3"
         >
           <div className="flex-1 min-w-0">
-            <p className="font-medium text-slate-900 truncate">{ticket.subject}</p>
+            <p className="font-medium text-white truncate">{ticket.subject}</p>
             <div className="flex items-center gap-2 mt-1">
               <StatusBadge status={ticket.status} />
               <span className="text-xs text-slate-500">
@@ -78,7 +78,7 @@ export function TicketList({ onSelect, onNewTicket }: TicketListProps) {
               </span>
             </div>
           </div>
-          <ChevronRight className="w-5 h-5 text-slate-400 flex-shrink-0" />
+          <ChevronRight className="w-5 h-5 text-slate-500 flex-shrink-0" />
         </button>
       ))}
     </div>

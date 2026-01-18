@@ -5,8 +5,8 @@ import { TicketList } from '@/components/admin/TicketList'
 import { TicketDetail } from '@/components/admin/TicketDetail'
 import { Filters } from '@/components/admin/Filters'
 import { StatsCards } from '@/components/admin/StatsCards'
-import { Button } from '@/components/ui/Button'
-import { LogOut, Inbox } from 'lucide-react'
+import { Avatar } from '@/components/ui/Avatar'
+import { LogOut, Inbox, MessageSquare, Loader2 } from 'lucide-react'
 import type { TicketStatus } from '@/types/database'
 
 export function AdminDashboard() {
@@ -35,26 +35,33 @@ export function AdminDashboard() {
   }, [tickets, searchQuery])
 
   return (
-    <div className="h-screen flex flex-col bg-slate-50">
+    <div className="h-screen flex flex-col bg-[#0a0a0f]">
       {/* Header */}
-      <header className="flex-shrink-0 bg-white border-b border-slate-200">
+      <header className="flex-shrink-0 bg-[#12121a] border-b border-white/10">
         <div className="flex items-center justify-between px-6 py-4">
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 bg-amber-500 rounded-lg flex items-center justify-center">
+            <div className="w-9 h-9 bg-gradient-to-br from-cyan-400 to-cyan-600 rounded-xl flex items-center justify-center shadow-sm">
               <span className="text-white font-bold text-sm">SB</span>
             </div>
-            <h1 className="text-lg font-semibold text-slate-900">
+            <h1 className="text-lg font-semibold text-white">
               ShipBee Support
             </h1>
           </div>
-          <div className="flex items-center gap-4">
-            <span className="text-sm text-slate-600">
+          <div className="flex items-center gap-3">
+            <Avatar
+              name={profile?.full_name || profile?.email || 'User'}
+              size="sm"
+            />
+            <span className="text-sm text-slate-300">
               {profile?.full_name || profile?.email}
             </span>
-            <Button variant="ghost" size="sm" onClick={signOut}>
-              <LogOut className="w-4 h-4 mr-2" />
-              Sign out
-            </Button>
+            <button
+              onClick={signOut}
+              className="p-2 text-slate-400 hover:text-white hover:bg-white/5 rounded-lg transition-colors"
+              title="Sign out"
+            >
+              <LogOut className="w-5 h-5" />
+            </button>
           </div>
         </div>
       </header>
@@ -63,9 +70,9 @@ export function AdminDashboard() {
       <StatsCards stats={stats} />
 
       {/* Main content */}
-      <div className="flex-1 flex min-h-0">
+      <div className="flex-1 flex min-h-0 p-4 gap-4">
         {/* Ticket list panel */}
-        <div className="w-[400px] flex-shrink-0 bg-white border-r border-slate-200 flex flex-col">
+        <div className="w-[380px] flex-shrink-0 bg-[#12121a] rounded-xl border border-white/10 flex flex-col overflow-hidden animate-fade-in-up">
           <Filters
             searchQuery={searchQuery}
             onSearchChange={setSearchQuery}
@@ -74,7 +81,14 @@ export function AdminDashboard() {
           />
           <div className="flex-1 overflow-y-auto">
             {loading ? (
-              <div className="p-8 text-center text-slate-500">Loading...</div>
+              <div className="flex items-center justify-center py-12 text-slate-400">
+                <Loader2 className="w-5 h-5 animate-spin" />
+              </div>
+            ) : filteredTickets.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-12 text-slate-500">
+                <MessageSquare className="w-8 h-8 mb-2" />
+                <p className="text-sm">No tickets found</p>
+              </div>
             ) : (
               <TicketList
                 tickets={filteredTickets}
@@ -86,7 +100,7 @@ export function AdminDashboard() {
         </div>
 
         {/* Ticket detail panel */}
-        <div className="flex-1 bg-white">
+        <div className="flex-1 bg-[#12121a] rounded-xl border border-white/10 overflow-hidden animate-fade-in-up animate-delay-100">
           {selectedTicket ? (
             <TicketDetail
               ticket={selectedTicket}
@@ -95,9 +109,9 @@ export function AdminDashboard() {
               onUpdate={refetchTicket}
             />
           ) : (
-            <div className="h-full flex flex-col items-center justify-center text-slate-400">
-              <Inbox className="w-16 h-16 mb-4" />
-              <p className="text-lg">Select a ticket to view details</p>
+            <div className="h-full flex flex-col items-center justify-center text-slate-500">
+              <Inbox className="w-10 h-10 mb-3" />
+              <p className="text-sm">Select a ticket to view</p>
             </div>
           )}
         </div>

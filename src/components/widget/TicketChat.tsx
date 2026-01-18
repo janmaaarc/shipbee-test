@@ -51,8 +51,8 @@ export function TicketChat({ ticketId }: TicketChatProps) {
   return (
     <div className="flex flex-col h-full">
       {/* Ticket info */}
-      <div className="flex-shrink-0 p-4 border-b border-slate-200">
-        <p className="font-medium text-slate-900 text-sm">{ticket.subject}</p>
+      <div className="flex-shrink-0 p-4 border-b border-white/10 bg-[#12121a]">
+        <p className="font-medium text-white text-sm">{ticket.subject}</p>
         <div className="flex items-center gap-2 mt-1">
           <StatusBadge status={ticket.status} />
         </div>
@@ -62,7 +62,7 @@ export function TicketChat({ ticketId }: TicketChatProps) {
       <MessageThread messages={ticket.messages || []} currentUserId={user?.id} />
 
       {/* Input */}
-      <div className="flex-shrink-0 border-t border-slate-200">
+      <div className="flex-shrink-0 border-t border-white/10 bg-[#12121a]">
         <MessageInput
           onSend={handleSendMessage}
           disabled={sending || uploading}

@@ -36,7 +36,7 @@ export function NewTicketForm({ onSuccess, onCancel }: NewTicketFormProps) {
   return (
     <form onSubmit={handleSubmit} className="p-4 space-y-4 h-full flex flex-col">
       <div>
-        <label className="block text-sm font-medium text-slate-700 mb-1">
+        <label className="block text-sm font-medium text-slate-300 mb-1">
           Subject
         </label>
         <Input
@@ -49,7 +49,7 @@ export function NewTicketForm({ onSuccess, onCancel }: NewTicketFormProps) {
       </div>
 
       <div className="flex-1">
-        <label className="block text-sm font-medium text-slate-700 mb-1">
+        <label className="block text-sm font-medium text-slate-300 mb-1">
           Message
         </label>
         <textarea
@@ -57,12 +57,12 @@ export function NewTicketForm({ onSuccess, onCancel }: NewTicketFormProps) {
           value={message}
           onChange={(e) => setMessage(e.target.value)}
           required
-          className="w-full h-32 px-3 py-2 border border-slate-300 rounded-lg text-sm resize-none focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent"
+          className="w-full h-32 px-3 py-2 bg-[#1a1a24] border border-white/10 rounded-xl text-sm text-white resize-none focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent placeholder:text-slate-500"
         />
       </div>
 
       {error && (
-        <p className="text-sm text-red-500">{error}</p>
+        <p className="text-sm text-red-400">{error}</p>
       )}
 
       <div className="flex gap-3">

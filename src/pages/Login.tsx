@@ -28,81 +28,66 @@ export function Login() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-slate-50 p-4">
-      <div className="w-full max-w-md">
-        <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-8">
-          {/* Logo */}
-          <div className="flex items-center justify-center gap-3 mb-8">
-            <div className="w-12 h-12 bg-amber-500 rounded-xl flex items-center justify-center">
-              <span className="text-white font-bold text-lg">SB</span>
-            </div>
-            <h1 className="text-2xl font-bold text-slate-900">ShipBee Support</h1>
+    <div className="min-h-screen flex items-center justify-center bg-[#0a0a0f] p-4">
+      <div className="w-full max-w-sm animate-fade-in-up">
+        {/* Logo */}
+        <div className="text-center mb-8">
+          <div className="w-14 h-14 bg-gradient-to-br from-cyan-400 to-cyan-600 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg shadow-cyan-500/20 transition-transform hover:scale-105">
+            <span className="text-white font-bold text-xl">SB</span>
           </div>
+          <h1 className="text-2xl font-semibold text-white">ShipBee Support</h1>
+          <p className="text-slate-400 mt-1">Customer support portal</p>
+        </div>
 
+        <div className="bg-[#12121a] rounded-2xl border border-white/10 p-6 shadow-xl animate-fade-in animate-delay-100">
           {sent ? (
-            <div className="text-center">
-              <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <Mail className="w-8 h-8 text-green-600" />
+            <div className="text-center py-4">
+              <div className="w-12 h-12 bg-cyan-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Mail className="w-6 h-6 text-cyan-400" />
               </div>
-              <h2 className="text-xl font-semibold text-slate-900 mb-2">
+              <h2 className="text-lg font-semibold text-white mb-2">
                 Check your email
               </h2>
-              <p className="text-slate-600 mb-4">
-                We sent a magic link to <strong>{email}</strong>
-              </p>
-              <p className="text-sm text-slate-500">
-                Click the link in your email to sign in. No password needed.
+              <p className="text-sm text-slate-400 mb-4">
+                We sent a link to <span className="font-medium text-slate-200">{email}</span>
               </p>
               <button
                 onClick={() => setSent(false)}
-                className="mt-6 text-sm text-amber-600 hover:text-amber-700"
+                className="text-sm text-cyan-400 hover:text-cyan-300 font-medium transition-colors"
               >
-                Use a different email
+                Use different email
               </button>
             </div>
           ) : (
             <>
-              <h2 className="text-xl font-semibold text-slate-900 text-center mb-2">
-                Welcome
-              </h2>
-              <p className="text-slate-600 text-center mb-6">
-                Sign in with your email to continue
-              </p>
+              <h2 className="text-lg font-semibold text-white mb-1">Sign in</h2>
+              <p className="text-sm text-slate-400 mb-6">Enter your email to continue</p>
 
               <form onSubmit={handleSubmit} className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">
-                    Email address
-                  </label>
-                  <Input
-                    type="email"
-                    placeholder="you@example.com"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    error={error || undefined}
-                    required
-                  />
-                </div>
+                <Input
+                  type="email"
+                  placeholder="you@example.com"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  error={error || undefined}
+                  required
+                />
 
                 <Button
                   type="submit"
                   disabled={loading || !email.trim()}
                   className="w-full"
-                  size="lg"
                 >
                   {loading ? (
-                    <>
-                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                      Sending...
-                    </>
+                    <Loader2 className="w-4 h-4 animate-spin" />
                   ) : (
-                    'Continue with Email'
+                    'Continue'
                   )}
                 </Button>
               </form>
 
-              <p className="mt-6 text-xs text-slate-500 text-center">
-                We'll send you a magic link to sign in. No password required.
+              <p className="mt-4 text-xs text-slate-500 text-center">
+                We'll email you a magic link to sign in
               </p>
             </>
           )}

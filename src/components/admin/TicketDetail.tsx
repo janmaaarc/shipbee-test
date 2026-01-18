@@ -59,9 +59,9 @@ export function TicketDetail({
   }
 
   return (
-    <div className="flex flex-col h-full bg-white">
+    <div className="flex flex-col h-full bg-[#12121a]">
       {/* Header */}
-      <div className="flex-shrink-0 border-b border-slate-200">
+      <div className="flex-shrink-0 border-b border-white/10">
         <div className="flex items-center justify-between p-4">
           <div className="flex items-center gap-3">
             <Avatar
@@ -69,22 +69,22 @@ export function TicketDetail({
               name={ticket.customer?.full_name || ticket.customer?.email || 'User'}
             />
             <div>
-              <h2 className="font-semibold text-slate-900">
+              <h2 className="font-semibold text-white">
                 {ticket.customer?.full_name || ticket.customer?.email}
               </h2>
-              <p className="text-sm text-slate-500">{ticket.customer?.email}</p>
+              <p className="text-sm text-slate-400">{ticket.customer?.email}</p>
             </div>
           </div>
           <button
             onClick={onClose}
-            className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg"
+            className="p-2 text-slate-400 hover:text-white hover:bg-white/5 rounded-lg transition-colors"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
         <div className="px-4 pb-4">
-          <h3 className="font-medium text-slate-900 mb-2">{ticket.subject}</h3>
+          <h3 className="font-medium text-white mb-2">{ticket.subject}</h3>
           <div className="flex items-center gap-3">
             {/* Status dropdown */}
             <div className="relative">
@@ -93,15 +93,15 @@ export function TicketDetail({
                 className="flex items-center gap-1 text-sm"
               >
                 <StatusBadge status={ticket.status} />
-                <ChevronDown className="w-4 h-4 text-slate-400" />
+                <ChevronDown className="w-4 h-4 text-slate-500" />
               </button>
               {showStatusMenu && (
-                <div className="absolute top-full left-0 mt-1 bg-white border border-slate-200 rounded-lg shadow-lg py-1 z-10">
+                <div className="absolute top-full left-0 mt-1 bg-[#1a1a24] border border-white/10 rounded-lg shadow-xl py-1 z-10">
                   {STATUS_OPTIONS.map((option) => (
                     <button
                       key={option.value}
                       onClick={() => handleStatusChange(option.value)}
-                      className="w-full px-4 py-2 text-left text-sm hover:bg-slate-50"
+                      className="w-full px-4 py-2 text-left text-sm text-slate-300 hover:bg-white/5 hover:text-white"
                     >
                       {option.label}
                     </button>
@@ -124,7 +124,7 @@ export function TicketDetail({
       />
 
       {/* Input */}
-      <div className="flex-shrink-0 border-t border-slate-200">
+      <div className="flex-shrink-0 border-t border-white/10 bg-[#12121a]">
         <MessageInput
           onSend={handleSendMessage}
           disabled={sending || uploading}

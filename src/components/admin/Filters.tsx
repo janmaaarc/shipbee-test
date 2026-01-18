@@ -24,10 +24,10 @@ export function Filters({
   onStatusChange,
 }: FiltersProps) {
   return (
-    <div className="p-4 border-b border-slate-200 space-y-4">
+    <div className="p-4 border-b border-white/10 space-y-4">
       {/* Search */}
       <div className="relative">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
         <Input
           type="text"
           placeholder="Search tickets..."
@@ -43,10 +43,10 @@ export function Filters({
           <button
             key={tab.value}
             onClick={() => onStatusChange(tab.value)}
-            className={`px-3 py-1.5 text-sm font-medium rounded-lg transition-colors ${
+            className={`px-3 py-1.5 text-sm font-medium rounded-lg transition-all duration-200 ${
               statusFilter === tab.value
-                ? 'bg-amber-100 text-amber-700'
-                : 'text-slate-600 hover:bg-slate-100'
+                ? 'bg-cyan-500/20 text-cyan-400'
+                : 'text-slate-400 hover:bg-white/5 hover:text-white'
             }`}
           >
             {tab.label}

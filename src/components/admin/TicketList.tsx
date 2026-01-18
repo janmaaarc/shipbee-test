@@ -19,13 +19,13 @@ export function TicketList({ tickets, selectedId, onSelect }: TicketListProps) {
   }
 
   return (
-    <div className="divide-y divide-slate-200">
+    <div className="divide-y divide-white/5">
       {tickets.map((ticket) => (
         <button
           key={ticket.id}
           onClick={() => onSelect(ticket.id)}
-          className={`w-full p-4 text-left hover:bg-slate-50 transition-colors ${
-            selectedId === ticket.id ? 'bg-amber-50 border-l-2 border-amber-500' : ''
+          className={`w-full p-4 text-left hover:bg-white/5 transition-all duration-200 ${
+            selectedId === ticket.id ? 'bg-cyan-500/10 border-l-2 border-cyan-500' : 'border-l-2 border-transparent'
           }`}
         >
           <div className="flex items-start gap-3">
@@ -35,14 +35,14 @@ export function TicketList({ tickets, selectedId, onSelect }: TicketListProps) {
             />
             <div className="flex-1 min-w-0">
               <div className="flex items-center justify-between gap-2">
-                <p className="font-medium text-slate-900 truncate">
+                <p className="font-medium text-white truncate">
                   {ticket.customer?.full_name || ticket.customer?.email}
                 </p>
                 <span className="text-xs text-slate-500 whitespace-nowrap">
                   {formatRelativeTime(ticket.updated_at)}
                 </span>
               </div>
-              <p className="text-sm text-slate-700 truncate mt-0.5">
+              <p className="text-sm text-slate-300 truncate mt-0.5">
                 {ticket.subject}
               </p>
               {ticket.last_message && (

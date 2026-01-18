@@ -1,6 +1,42 @@
 -- ShipBee Support - Initial Schema
 -- Run this in Supabase SQL Editor
 
+-- ============================================
+-- CLEANUP (Drop existing objects)
+-- ============================================
+
+-- Drop storage policies (storage.objects always exists)
+DROP POLICY IF EXISTS "Authenticated users can upload attachments" ON storage.objects;
+DROP POLICY IF EXISTS "Users can view attachments they have access to" ON storage.objects;
+DROP POLICY IF EXISTS "Authenticated users can upload" ON storage.objects;
+DROP POLICY IF EXISTS "Authenticated users can view" ON storage.objects;
+DROP POLICY IF EXISTS "Users can delete own uploads" ON storage.objects;
+DROP POLICY IF EXISTS "Users can delete own attachments" ON storage.objects;
+
+-- Drop trigger on auth.users
+DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
+
+-- Drop tables (CASCADE will drop policies, triggers, and indexes)
+DROP TABLE IF EXISTS attachments CASCADE;
+DROP TABLE IF EXISTS messages CASCADE;
+DROP TABLE IF EXISTS tickets CASCADE;
+DROP TABLE IF EXISTS profiles CASCADE;
+
+-- Drop functions
+DROP FUNCTION IF EXISTS handle_new_user() CASCADE;
+DROP FUNCTION IF EXISTS update_updated_at() CASCADE;
+DROP FUNCTION IF EXISTS get_ticket_details(UUID) CASCADE;
+DROP FUNCTION IF EXISTS get_admin_stats() CASCADE;
+
+-- Drop types (CASCADE will drop functions that depend on them)
+DROP TYPE IF EXISTS ticket_status CASCADE;
+DROP TYPE IF EXISTS ticket_priority CASCADE;
+DROP TYPE IF EXISTS user_role CASCADE;
+
+-- ============================================
+-- CREATE SCHEMA
+-- ============================================
+
 -- Enable UUID extension
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
@@ -318,13 +354,7 @@ $$ LANGUAGE plpgsql SECURITY DEFINER;
 -- ============================================
 -- Storage bucket for attachments
 -- ============================================
--- Run this in Supabase Dashboard > Storage > Create bucket
--- Bucket name: attachments
--- Public: false
--- File size limit: 10MB
--- Allowed MIME types: image/*, video/*, application/pdf, application/msword, application/vnd.openxmlformats-officedocument.wordprocessingml.document
 
--- Storage policies (run in SQL editor)
 INSERT INTO storage.buckets (id, name, public)
 VALUES ('attachments', 'attachments', false)
 ON CONFLICT (id) DO NOTHING;
@@ -342,5 +372,20 @@ USING (bucket_id = 'attachments');
 -- ============================================
 -- Enable Realtime
 -- ============================================
-ALTER PUBLICATION supabase_realtime ADD TABLE tickets;
-ALTER PUBLICATION supabase_realtime ADD TABLE messages;
+
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_publication_tables
+        WHERE pubname = 'supabase_realtime' AND tablename = 'tickets'
+    ) THEN
+        ALTER PUBLICATION supabase_realtime ADD TABLE tickets;
+    END IF;
+
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_publication_tables
+        WHERE pubname = 'supabase_realtime' AND tablename = 'messages'
+    ) THEN
+        ALTER PUBLICATION supabase_realtime ADD TABLE messages;
+    END IF;
+END $$;
