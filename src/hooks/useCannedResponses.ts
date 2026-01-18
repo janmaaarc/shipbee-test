@@ -1,5 +1,4 @@
 import { useState, useEffect, useCallback } from 'react'
-import { supabase } from '../lib/supabase'
 import type { CannedResponse } from '../types/database'
 
 // Default canned responses for when DB is empty
