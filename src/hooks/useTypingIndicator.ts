@@ -14,7 +14,7 @@ interface UseTypingIndicatorOptions {
 
 export function useTypingIndicator({ ticketId, profile }: UseTypingIndicatorOptions) {
   const [typingUsers, setTypingUsers] = useState<TypingUser[]>([])
-  const typingTimeoutRef = useRef<ReturnType<typeof setTimeout>>()
+  const typingTimeoutRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
   const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null)
 
   // Broadcast that user is typing
