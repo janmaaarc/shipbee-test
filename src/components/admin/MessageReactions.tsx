@@ -163,7 +163,7 @@ export function MessageReactions({
 }
 
 // Hook for managing reactions state (would normally integrate with backend)
-export function useMessageReactions(messageId: string) {
+export function useMessageReactions(_messageId: string) {
   const [reactions, setReactions] = useState<Reaction[]>([])
 
   const addReaction = useCallback((emoji: string) => {
