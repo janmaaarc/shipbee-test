@@ -1,4 +1,5 @@
-import { useState, useRef, useEffect, useCallback, DragEvent } from 'react'
+import { useState, useRef, useEffect, useCallback } from 'react'
+import type { DragEvent } from 'react'
 import { Send, Paperclip, X, Image, Film, FileText, Loader2, AlertTriangle, Zap, Upload } from 'lucide-react'
 import { Button } from '../ui/Button'
 import { useFileUpload } from '../../hooks/useFileUpload'
