@@ -87,8 +87,8 @@ export function ImageLightbox({ images, initialIndex = 0, onClose }: ImageLightb
       a.click()
       document.body.removeChild(a)
       URL.revokeObjectURL(url)
-    } catch (error) {
-      console.error('Failed to download image:', error)
+    } catch {
+      // Download failed silently - user can retry
     }
   }, [currentImage])
 

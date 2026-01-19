@@ -29,7 +29,6 @@ export function useAuth() {
         .single()
 
       if (error) {
-        console.error('Failed to fetch profile:', error)
         // Still set user/session even if profile fetch fails
         setState({
           user: session.user,
@@ -48,8 +47,7 @@ export function useAuth() {
         loading: false,
         error: null,
       })
-    } catch (err) {
-      console.error('Profile fetch error:', err)
+    } catch {
       setState({
         user: session.user,
         profile: null,
@@ -64,7 +62,6 @@ export function useAuth() {
     // Get initial session
     supabase.auth.getSession().then(({ data: { session }, error }) => {
       if (error) {
-        console.error('Session fetch error:', error)
         setState((s) => ({ ...s, loading: false, error: error.message }))
         return
       }
