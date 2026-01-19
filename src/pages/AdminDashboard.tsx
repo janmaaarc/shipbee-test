@@ -106,7 +106,7 @@ export function AdminDashboard() {
         <aside
           className={`${
             mobileMenuOpen ? 'fixed inset-0 z-40 bg-background' : 'hidden'
-          } lg:relative lg:block lg:w-96 xl:w-[420px] border-r border-border flex flex-col`}
+          } lg:relative lg:flex lg:flex-col lg:h-full lg:w-96 xl:w-[420px] border-r border-border`}
         >
           {/* Mobile close button */}
           <div className="lg:hidden flex items-center justify-between p-3 border-b border-border safe-area-inset-top">
