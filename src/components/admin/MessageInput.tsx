@@ -11,6 +11,7 @@ import { sanitizeInput, sanitizeFileName, isFileTypeSafe } from '../../lib/utils
 interface MessageInputProps {
   onSend: (content: string, attachments?: { file_name: string; file_url: string; file_type: string; file_size: number }[]) => Promise<{ error: Error | null }>
   onTyping?: () => void
+  showQuickActions?: boolean
 }
 
 interface PendingFile {
@@ -20,7 +21,7 @@ interface PendingFile {
   uploaded?: boolean
 }
 
-export function MessageInput({ onSend, onTyping }: MessageInputProps) {
+export function MessageInput({ onSend, onTyping, showQuickActions = true }: MessageInputProps) {
   const [message, setMessage] = useState('')
   const [pendingFiles, setPendingFiles] = useState<PendingFile[]>([])
   const [sending, setSending] = useState(false)
@@ -350,22 +351,24 @@ export function MessageInput({ onSend, onTyping }: MessageInputProps) {
         >
           <Paperclip className="w-5 h-5" />
         </button>
-        <button
-          type="button"
-          onClick={() => setShowCannedResponses(!showCannedResponses)}
-          aria-label="Canned responses"
-          title="Quick responses (or type /)"
-          className={`p-2.5 rounded-lg transition-colors flex-shrink-0 ${
-            showCannedResponses
-              ? 'text-brand-400 bg-brand-500/10'
-              : 'text-text-secondary hover:text-white hover:bg-surface-light'
-          }`}
-        >
-          <Zap className="w-5 h-5" />
-        </button>
+        {showQuickActions && (
+          <button
+            type="button"
+            onClick={() => setShowCannedResponses(!showCannedResponses)}
+            aria-label="Canned responses"
+            title="Quick responses (or type /)"
+            className={`p-2.5 rounded-lg transition-colors flex-shrink-0 ${
+              showCannedResponses
+                ? 'text-brand-400 bg-brand-500/10'
+                : 'text-text-secondary hover:text-white hover:bg-surface-light'
+            }`}
+          >
+            <Zap className="w-5 h-5" />
+          </button>
+        )}
         <div className="flex-1 relative">
           {/* Canned responses picker - fixed overlay on mobile, absolute on desktop */}
-          {showCannedResponses && (
+          {showQuickActions && showCannedResponses && (
             <>
               {/* Mobile: fixed bottom overlay */}
               <div className="sm:hidden fixed inset-x-0 bottom-0 z-50 p-3 bg-background/95 backdrop-blur-sm border-t border-border safe-area-inset-bottom animate-in slide-in-from-bottom">
@@ -394,7 +397,7 @@ export function MessageInput({ onSend, onTyping }: MessageInputProps) {
             ref={textareaRef}
             value={message}
             onChange={(e) => handleMessageChange(e.target.value)}
-            placeholder="Type your message... (/ for quick responses)"
+            placeholder={showQuickActions ? "Type your message... (/ for quick responses)" : "Type your message..."}
             rows={1}
             aria-label="Message"
             className="w-full px-4 py-2.5 pr-20 bg-surface-light border border-border rounded-lg text-white placeholder:text-text-muted resize-none overflow-hidden focus:outline-none focus:ring-2 focus:ring-brand-500/50 focus:border-brand-500 transition-all"

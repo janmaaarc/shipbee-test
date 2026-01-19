@@ -213,7 +213,7 @@ export function TicketChat({ ticket, loading, onSendMessage, profile }: TicketCh
       {/* Input */}
       {ticket.status !== 'closed' ? (
         <div className="flex-shrink-0 border-t border-border bg-surface-light/30">
-          <MessageInput onSend={handleSendMessage} onTyping={onTyping} />
+          <MessageInput onSend={handleSendMessage} onTyping={onTyping} showQuickActions={false} />
         </div>
       ) : (
         <div className="flex-shrink-0 p-4 border-t border-border bg-surface-light/30">
