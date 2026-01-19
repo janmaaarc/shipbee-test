@@ -5,17 +5,27 @@ A customer support widget system with an embeddable chat widget and admin dashbo
 ## Features
 
 ### Customer Widget
+- Floating chat button with unread count badge
 - Submit support tickets through a chat interface
 - View previous tickets and conversations
 - Upload attachments (images, videos, documents)
 - Real-time message updates
+- Ticket status visibility
 
 ### Admin Dashboard
 - View all tickets with filtering and search
 - Reply to customer messages
+- **@mentions** - Mention support agents or customers in messages
+- **Canned responses** - Quick replies with `/` shortcuts
+- **Typing indicators** - See when others are typing
+- **Message reactions** - React to messages with emojis
 - Update ticket status (open, pending, resolved, closed)
-- View attachments inline
+- View attachments inline with image lightbox
 - Real-time updates when new tickets/messages arrive
+- **Keyboard shortcuts** - Quick navigation (press `?` to view)
+- **Theme toggle** - Light/dark mode support
+- **Sound notifications** - Audio alerts for new messages
+- **Mobile optimized** - Swipe gestures, responsive design
 
 ## Tech Stack
 
@@ -75,8 +85,11 @@ src/
 │   │   ├── Filters.tsx        # Search and filter controls
 │   │   ├── TicketList.tsx     # Ticket list view
 │   │   ├── TicketDetail.tsx   # Selected ticket detail view
-│   │   ├── MessageThread.tsx  # Message display
-│   │   └── MessageInput.tsx   # Message composer with file upload
+│   │   ├── MessageThread.tsx  # Message display with mentions
+│   │   ├── MessageInput.tsx   # Message composer with file upload
+│   │   ├── MentionPicker.tsx  # @mention user dropdown
+│   │   ├── MessageReactions.tsx # Emoji reactions
+│   │   └── CannedResponsesPicker.tsx # Quick reply selector
 │   └── widget/                # Customer widget components
 │       ├── ChatWidget.tsx     # Main widget container
 │       ├── WidgetButton.tsx   # Floating toggle button
@@ -89,7 +102,12 @@ src/
 │   ├── useAuth.ts             # Authentication state and methods
 │   ├── useTickets.ts          # Ticket CRUD and realtime
 │   ├── useAdminStats.ts       # Dashboard statistics
-│   └── useFileUpload.ts       # File upload to Supabase Storage
+│   ├── useFileUpload.ts       # File upload to Supabase Storage
+│   ├── useMentionableUsers.ts # @mention user fetching
+│   ├── useTypingIndicator.ts  # Real-time typing status
+│   ├── useReactions.ts        # Message reactions
+│   ├── useCannedResponses.ts  # Quick reply templates
+│   └── useRateLimit.ts        # Message rate limiting
 ├── lib/
 │   ├── supabase.ts            # Supabase client
 │   └── utils.ts               # Utility functions
