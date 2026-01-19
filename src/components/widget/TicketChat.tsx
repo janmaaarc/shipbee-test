@@ -153,6 +153,7 @@ export function TicketChat({ ticket, loading, onSendMessage, profile }: TicketCh
                               <img
                                 src={attachment.file_url}
                                 alt={attachment.file_name}
+                                loading="lazy"
                                 className="max-w-full rounded-lg max-h-32 object-cover transition-opacity group-hover:opacity-90"
                               />
                               <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-black/30 rounded-lg">

@@ -409,8 +409,8 @@ export function MessageInput({ onSend, onTyping }: MessageInputProps) {
               }
             }}
           />
-          <span className="absolute right-12 bottom-3.5 text-[10px] text-text-muted pointer-events-none hidden sm:block">
-            Enter ↵
+          <span className="absolute right-12 bottom-3.5 text-[10px] text-text-muted pointer-events-none hidden sm:block" title="Shift+Enter for new line">
+            ↵ send
           </span>
         </div>
         <Button

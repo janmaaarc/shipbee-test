@@ -16,7 +16,8 @@ interface UploadedFile {
 
 export function useFileUpload() {
   const [uploading, setUploading] = useState(false)
-  const [progress, setProgress] = useState(0)
+  // null = indeterminate (uploading), 0 = not started, 100 = complete
+  const [progress, setProgress] = useState<number | null>(0)
 
   function validateFile(file: File): string | null {
     const allowedTypes = [...ALLOWED_IMAGE_TYPES, ...ALLOWED_VIDEO_TYPES, ...ALLOWED_DOC_TYPES]
@@ -45,7 +46,7 @@ export function useFileUpload() {
     }
 
     setUploading(true)
-    setProgress(0)
+    setProgress(null) // Indeterminate while uploading
 
     try {
       const { data: { user } } = await supabase.auth.getUser()
@@ -90,6 +91,7 @@ export function useFileUpload() {
       }
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Upload failed'
+      setProgress(0) // Reset on error
       return { data: null, error: message }
     } finally {
       setUploading(false)

@@ -95,11 +95,18 @@ export function useVirtualScroll({
     }
   }, [])
 
-  // Observe container size
+  // Attach scroll listener and observe container size
   useEffect(() => {
     const container = containerRef.current
     if (!container) return
 
+    // Attach scroll listener
+    const onScroll = () => {
+      setScrollTop(container.scrollTop)
+    }
+    container.addEventListener('scroll', onScroll, { passive: true })
+
+    // Observe container size
     const resizeObserver = new ResizeObserver((entries) => {
       for (const entry of entries) {
         setContainerHeight(entry.contentRect.height)
@@ -109,7 +116,10 @@ export function useVirtualScroll({
     resizeObserver.observe(container)
     setContainerHeight(container.clientHeight)
 
-    return () => resizeObserver.disconnect()
+    return () => {
+      container.removeEventListener('scroll', onScroll)
+      resizeObserver.disconnect()
+    }
   }, [])
 
   // Scroll to index
