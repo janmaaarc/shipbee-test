@@ -67,13 +67,6 @@ export interface AdminStats {
   resolved_today: number
 }
 
-export interface CustomerStats {
-  total_tickets: number
-  open_tickets: number
-  pending_tickets: number
-  resolved_tickets: number
-}
-
 // Canned responses
 export interface CannedResponse {
   id: string
