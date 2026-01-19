@@ -55,8 +55,12 @@ export function MessageThread({ messages }: MessageThreadProps) {
   // Reactions management
   const { getReactions, addReaction, removeReaction } = useReactions()
 
+  // Scroll to bottom with slight delay for rendering
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
+    const timer = setTimeout(() => {
+      bottomRef.current?.scrollIntoView({ behavior: 'auto', block: 'end' })
+    }, 50)
+    return () => clearTimeout(timer)
   }, [messages])
 
   // Collect all images from messages for gallery navigation

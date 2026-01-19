@@ -39,8 +39,12 @@ export function TicketChat({ ticket, loading, onSendMessage, profile }: TicketCh
     profile: profile || null,
   })
 
+  // Scroll to bottom with slight delay for mobile rendering
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
+    const timer = setTimeout(() => {
+      bottomRef.current?.scrollIntoView({ behavior: 'auto', block: 'end' })
+    }, 50)
+    return () => clearTimeout(timer)
   }, [ticket?.messages])
 
   const typingName = typingUsers.length > 0
