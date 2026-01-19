@@ -180,15 +180,27 @@ export function useTicketDetails(ticketId: string | null, options: UseTicketDeta
   }, [ticketId, fetchTicket])
 
   async function updateStatus(status: TicketStatus) {
-    if (!ticketId) return { error: new Error('No ticket selected') }
+    if (!ticketId || !ticket) return { error: new Error('No ticket selected') }
+
+    const previousStatus = ticket.status
+
+    // Optimistic update - update UI immediately
+    setTicket((prev) => {
+      if (!prev) return prev
+      return { ...prev, status }
+    })
 
     const { error } = await supabase
       .from('tickets')
       .update({ status } as Partial<Ticket>)
       .eq('id', ticketId)
 
-    if (!error) {
-      fetchTicket()
+    if (error) {
+      // Rollback on error
+      setTicket((prev) => {
+        if (!prev) return prev
+        return { ...prev, status: previousStatus }
+      })
     }
 
     return { error }
@@ -236,15 +248,12 @@ export function useTicketDetails(ticketId: string | null, options: UseTicketDeta
       }
     })
 
+    // Use RPC for rate limiting and server-side validation
     const { data: message, error: messageError } = await supabase
-      .from('messages')
-      .insert({
-        ticket_id: ticketId,
-        sender_id: user.id,
-        content,
-      } as Omit<Message, 'id' | 'created_at'>)
-      .select()
-      .single()
+      .rpc('send_message', {
+        p_ticket_id: ticketId,
+        p_content: content,
+      })
 
     if (messageError) {
       // Rollback optimistic update on error
@@ -260,7 +269,7 @@ export function useTicketDetails(ticketId: string | null, options: UseTicketDeta
 
     // Add attachments if any
     if (attachments && attachments.length > 0 && message) {
-      const messageData = message as Message
+      const messageData = message as { id: string }
       await supabase.from('attachments').insert(
         attachments.map((att) => ({
           message_id: messageData.id,

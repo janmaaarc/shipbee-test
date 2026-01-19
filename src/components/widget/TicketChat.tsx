@@ -1,26 +1,19 @@
 import { useEffect, useRef } from 'react'
 import { FileText, Image, Film, Download, Lock } from 'lucide-react'
-import { formatFileSize } from '../../lib/utils'
+import { formatFileSize, statusVariant } from '../../lib/utils'
 import { Avatar } from '../ui/Avatar'
 import { Badge } from '../ui/Badge'
 import { MessageInput } from '../admin/MessageInput'
 import { Skeleton, SkeletonAvatar } from '../ui/Skeleton'
 import { TypingIndicator } from '../ui/TypingIndicator'
 import { useTypingIndicator } from '../../hooks/useTypingIndicator'
-import type { TicketWithDetails, TicketStatus, Profile } from '../../types/database'
+import type { TicketWithDetails, Profile } from '../../types/database'
 
 interface TicketChatProps {
   ticket: TicketWithDetails | null
   loading: boolean
   onSendMessage: (content: string, attachments?: { file_name: string; file_url: string; file_type: string; file_size: number }[]) => Promise<{ error: Error | null }>
   profile?: Profile | null
-}
-
-const statusVariant: Record<TicketStatus, 'default' | 'warning' | 'success' | 'info'> = {
-  open: 'warning',
-  pending: 'info',
-  resolved: 'success',
-  closed: 'default',
 }
 
 function formatTime(date: string): string {

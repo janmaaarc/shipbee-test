@@ -18,12 +18,27 @@ function getSystemTheme(): 'dark' | 'light' {
   return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
 }
 
-export function ThemeProvider({ children }: { children: ReactNode }) {
-  const [theme, setThemeState] = useState<Theme>(() => {
+// Safe localStorage access for private browsing mode
+function getStoredTheme(): Theme {
+  try {
     if (typeof window === 'undefined') return 'dark'
     const stored = localStorage.getItem(STORAGE_KEY) as Theme | null
     return stored || 'dark'
-  })
+  } catch {
+    return 'dark'
+  }
+}
+
+function setStoredTheme(theme: Theme): void {
+  try {
+    localStorage.setItem(STORAGE_KEY, theme)
+  } catch {
+    // Ignore errors in private browsing mode
+  }
+}
+
+export function ThemeProvider({ children }: { children: ReactNode }) {
+  const [theme, setThemeState] = useState<Theme>(getStoredTheme)
 
   const [resolvedTheme, setResolvedTheme] = useState<'dark' | 'light'>(() => {
     if (theme === 'system') return getSystemTheme()
@@ -76,7 +91,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
 
   const setTheme = useCallback((newTheme: Theme) => {
     setThemeState(newTheme)
-    localStorage.setItem(STORAGE_KEY, newTheme)
+    setStoredTheme(newTheme)
   }, [])
 
   const toggleTheme = useCallback(() => {

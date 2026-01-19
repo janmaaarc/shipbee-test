@@ -6,6 +6,21 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
 }
 
+// Badge variant mappings for tickets
+export const statusVariant: Record<TicketStatus, 'default' | 'warning' | 'success' | 'info'> = {
+  open: 'warning',
+  pending: 'info',
+  resolved: 'success',
+  closed: 'default',
+}
+
+export const priorityVariant: Record<TicketPriority, 'default' | 'warning' | 'error' | 'info'> = {
+  low: 'default',
+  medium: 'info',
+  high: 'warning',
+  urgent: 'error',
+}
+
 // Secure unique ID generation
 export function generateId(): string {
   return crypto.randomUUID()

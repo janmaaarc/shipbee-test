@@ -34,7 +34,7 @@ export function WidgetButton({ isOpen, onClick, unreadCount = 0 }: WidgetButtonP
         )}
       </div>
       {!isOpen && unreadCount > 0 && (
-        <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white text-xs font-medium rounded-full flex items-center justify-center animate-in fade-in zoom-in duration-200">
+        <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white text-xs font-medium rounded-full flex items-center justify-center animate-pulse shadow-lg shadow-red-500/50">
           {unreadCount > 9 ? '9+' : unreadCount}
         </span>
       )}

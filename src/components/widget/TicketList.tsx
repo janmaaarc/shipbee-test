@@ -1,19 +1,12 @@
 import { MessageSquare, ChevronRight } from 'lucide-react'
-import { formatRelativeTime } from '../../lib/utils'
+import { formatRelativeTime, statusVariant } from '../../lib/utils'
 import { Badge } from '../ui/Badge'
-import type { TicketWithCustomer, TicketStatus } from '../../types/database'
+import type { TicketWithCustomer } from '../../types/database'
 
 interface TicketListProps {
   tickets: TicketWithCustomer[]
   loading: boolean
   onSelect: (id: string) => void
-}
-
-const statusVariant: Record<TicketStatus, 'default' | 'warning' | 'success' | 'info'> = {
-  open: 'warning',
-  pending: 'info',
-  resolved: 'success',
-  closed: 'default',
 }
 
 export function TicketList({ tickets, loading, onSelect }: TicketListProps) {

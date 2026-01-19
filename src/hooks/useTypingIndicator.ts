@@ -16,6 +16,8 @@ export function useTypingIndicator({ ticketId, profile }: UseTypingIndicatorOpti
   const [typingUsers, setTypingUsers] = useState<TypingUser[]>([])
   const typingTimeoutRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
   const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null)
+  // Track auto-remove timeouts by user ID to prevent memory leaks
+  const userTimeoutsRef = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map())
 
   // Broadcast that user is typing
   const setTyping = useCallback((isTyping: boolean) => {
@@ -76,21 +78,37 @@ export function useTypingIndicator({ ticketId, profile }: UseTypingIndicatorOpti
             return [...prev, { id: payload.user_id, name: payload.user_name }]
           })
 
+          // Clear existing timeout for this user
+          const existingTimeout = userTimeoutsRef.current.get(payload.user_id)
+          if (existingTimeout) {
+            clearTimeout(existingTimeout)
+          }
+
           // Auto-remove after 3 seconds if no update
-          setTimeout(() => {
+          const timeout = setTimeout(() => {
             setTypingUsers((prev) => prev.filter((u) => u.id !== payload.user_id))
+            userTimeoutsRef.current.delete(payload.user_id)
           }, 3000)
+          userTimeoutsRef.current.set(payload.user_id, timeout)
         } else {
-          // Remove user from typing list
+          // Clear timeout and remove user from typing list
+          const existingTimeout = userTimeoutsRef.current.get(payload.user_id)
+          if (existingTimeout) {
+            clearTimeout(existingTimeout)
+            userTimeoutsRef.current.delete(payload.user_id)
+          }
           setTypingUsers((prev) => prev.filter((u) => u.id !== payload.user_id))
         }
       })
       .subscribe()
 
     return () => {
+      // Clear all timeouts on cleanup
       if (typingTimeoutRef.current) {
         clearTimeout(typingTimeoutRef.current)
       }
+      userTimeoutsRef.current.forEach((timeout) => clearTimeout(timeout))
+      userTimeoutsRef.current.clear()
       supabase.removeChannel(channel)
       channelRef.current = null
     }

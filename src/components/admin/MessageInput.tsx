@@ -310,7 +310,9 @@ export function MessageInput({ onSend, onTyping, showQuickActions = true }: Mess
                 {uploading && (
                   <div className="absolute inset-0 bg-black/60 flex flex-col items-center justify-center">
                     <Loader2 className="w-5 h-5 text-white animate-spin mb-1" />
-                    <span className="text-xs text-white font-medium">{progress}%</span>
+                    <span className="text-xs text-white font-medium">
+                      {progress === null ? 'Uploading...' : `${progress}%`}
+                    </span>
                   </div>
                 )}
 

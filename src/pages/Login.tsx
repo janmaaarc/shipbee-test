@@ -4,6 +4,7 @@ import { Mail, ArrowRight, Check, Headset } from 'lucide-react'
 import { Button } from '../components/ui/Button'
 import { Input } from '../components/ui/Input'
 import { useAuth } from '../hooks/useAuth'
+import { isValidEmail } from '../lib/utils'
 
 export function Login() {
   const { user, loading, signInWithEmail } = useAuth()
@@ -27,6 +28,13 @@ export function Login() {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     setError('')
+
+    // Client-side email validation
+    if (!isValidEmail(email)) {
+      setError('Please enter a valid email address')
+      return
+    }
+
     setSubmitting(true)
 
     const { error } = await signInWithEmail(email)

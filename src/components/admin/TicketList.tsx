@@ -1,12 +1,12 @@
 import { useRef, useCallback } from 'react'
 import { Inbox, Loader2, AlertCircle, RefreshCw } from 'lucide-react'
-import { formatRelativeTime, formatDate } from '../../lib/utils'
+import { formatRelativeTime, formatDate, statusVariant, priorityVariant } from '../../lib/utils'
 import { Avatar } from '../ui/Avatar'
 import { Badge } from '../ui/Badge'
 import { EmptyState } from '../ui/EmptyState'
 import { SkeletonCard } from '../ui/Skeleton'
 import { Button } from '../ui/Button'
-import type { TicketWithCustomer, TicketStatus, TicketPriority } from '../../types/database'
+import type { TicketWithCustomer } from '../../types/database'
 
 interface TicketListProps {
   tickets: TicketWithCustomer[]
@@ -18,20 +18,6 @@ interface TicketListProps {
   onLoadMore?: () => void
   error?: string | null
   onRetry?: () => void
-}
-
-const statusVariant: Record<TicketStatus, 'default' | 'warning' | 'success' | 'info'> = {
-  open: 'warning',
-  pending: 'info',
-  resolved: 'success',
-  closed: 'default',
-}
-
-const priorityVariant: Record<TicketPriority, 'default' | 'warning' | 'error' | 'info'> = {
-  low: 'default',
-  medium: 'info',
-  high: 'warning',
-  urgent: 'error',
 }
 
 export function TicketList({ tickets, selectedId, onSelect, loading, loadingMore, hasMore, onLoadMore, error, onRetry }: TicketListProps) {
@@ -139,7 +125,10 @@ export function TicketList({ tickets, selectedId, onSelect, loading, loadingMore
               <div className="flex-1 min-w-0">
                 <div className="flex items-center justify-between gap-2 mb-1">
                   <div className="flex items-center gap-2 min-w-0">
-                    <p className={`font-medium truncate ${hasUnread ? 'text-white' : 'text-white'}`}>
+                    {hasUnread && (
+                      <span className="flex-shrink-0 w-2 h-2 bg-brand-500 rounded-full" />
+                    )}
+                    <p className={`truncate ${hasUnread ? 'font-semibold text-white' : 'font-medium text-text-secondary'}`}>
                       {ticket.subject}
                     </p>
                   </div>
