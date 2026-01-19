@@ -6,12 +6,16 @@ import { useFileUpload } from '../../hooks/useFileUpload'
 import { useMessageRateLimit } from '../../hooks/useRateLimit'
 import { useCannedResponses } from '../../hooks/useCannedResponses'
 import { CannedResponsesPicker } from './CannedResponsesPicker'
+import { MentionPicker } from './MentionPicker'
 import { sanitizeInput, sanitizeFileName, isFileTypeSafe } from '../../lib/utils'
+import type { MentionableUser } from '../../hooks/useMentionableUsers'
 
 interface MessageInputProps {
   onSend: (content: string, attachments?: { file_name: string; file_url: string; file_type: string; file_size: number }[]) => Promise<{ error: Error | null }>
   onTyping?: () => void
   showQuickActions?: boolean
+  mentionableUsers?: MentionableUser[]
+  mentionsLoading?: boolean
 }
 
 interface PendingFile {
@@ -21,7 +25,7 @@ interface PendingFile {
   uploaded?: boolean
 }
 
-export function MessageInput({ onSend, onTyping, showQuickActions = true }: MessageInputProps) {
+export function MessageInput({ onSend, onTyping, showQuickActions = true, mentionableUsers = [], mentionsLoading = false }: MessageInputProps) {
   const [message, setMessage] = useState('')
   const [pendingFiles, setPendingFiles] = useState<PendingFile[]>([])
   const [sending, setSending] = useState(false)
@@ -30,12 +34,23 @@ export function MessageInput({ onSend, onTyping, showQuickActions = true }: Mess
   const [showCannedResponses, setShowCannedResponses] = useState(false)
   const [shortcutQuery, setShortcutQuery] = useState('')
   const [isDragging, setIsDragging] = useState(false)
+  const [showMentions, setShowMentions] = useState(false)
+  const [mentionQuery, setMentionQuery] = useState('')
+  const [mentionStartIndex, setMentionStartIndex] = useState<number | null>(null)
+  const [mentionSelectedIndex, setMentionSelectedIndex] = useState(0)
   const dragCounterRef = useRef(0)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const formRef = useRef<HTMLFormElement>(null)
   const { uploadMultiple, uploading, progress, validateFile, getFileCategory } = useFileUpload()
   const { getByShortcut } = useCannedResponses()
+
+  // Filter mentionable users based on query
+  const filteredMentionUsers = mentionableUsers.filter(
+    (user) =>
+      user.name.toLowerCase().includes(mentionQuery.toLowerCase()) ||
+      user.email.toLowerCase().includes(mentionQuery.toLowerCase())
+  )
 
   // Rate limiting - 10 messages per minute
   const { isRateLimited, remainingRequests, resetTime, checkAndRecord } = useMessageRateLimit(() => {
@@ -49,10 +64,35 @@ export function MessageInput({ onSend, onTyping, showQuickActions = true }: Mess
     }
   }, [isRateLimited, rateLimitWarning])
 
-  // Detect slash commands
-  const handleMessageChange = useCallback((value: string) => {
+  // Detect slash commands and @ mentions
+  const handleMessageChange = useCallback((value: string, cursorPos?: number) => {
     setMessage(value)
     onTyping?.()
+
+    const cursor = cursorPos ?? value.length
+
+    // Check for @ mention
+    const textBeforeCursor = value.slice(0, cursor)
+    const mentionMatch = textBeforeCursor.match(/@(\w*)$/)
+
+    if (mentionMatch) {
+      const atIndex = textBeforeCursor.lastIndexOf('@')
+      // Check if @ is at start or preceded by whitespace (not part of email)
+      if (atIndex === 0 || /\s/.test(textBeforeCursor[atIndex - 1])) {
+        setShowMentions(true)
+        setMentionQuery(mentionMatch[1])
+        setMentionStartIndex(atIndex)
+        setMentionSelectedIndex(0)
+        return
+      }
+    }
+
+    // Close mention picker if no longer in mention mode
+    if (showMentions) {
+      setShowMentions(false)
+      setMentionQuery('')
+      setMentionStartIndex(null)
+    }
 
     // Check for slash command
     const match = value.match(/^\/(\w*)$/)
@@ -73,7 +113,24 @@ export function MessageInput({ onSend, onTyping, showQuickActions = true }: Mess
         setShortcutQuery('')
       }
     }
-  }, [onTyping, showCannedResponses, getByShortcut])
+  }, [onTyping, showCannedResponses, showMentions, getByShortcut])
+
+  // Handle mention selection
+  const handleMentionSelect = useCallback((user: MentionableUser) => {
+    if (mentionStartIndex === null) return
+
+    const beforeMention = message.slice(0, mentionStartIndex)
+    const afterMention = message.slice(mentionStartIndex + mentionQuery.length + 1) // +1 for @
+    const mentionText = `@[${user.name}](${user.id}) `
+    const newMessage = beforeMention + mentionText + afterMention
+
+    setMessage(newMessage)
+    setShowMentions(false)
+    setMentionQuery('')
+    setMentionStartIndex(null)
+    setMentionSelectedIndex(0)
+    textareaRef.current?.focus()
+  }, [message, mentionStartIndex, mentionQuery])
 
   // Handle canned response selection
   const handleCannedResponseSelect = useCallback((content: string) => {
@@ -395,16 +452,49 @@ export function MessageInput({ onSend, onTyping, showQuickActions = true }: Mess
               </div>
             </>
           )}
+          {/* Mention picker */}
+          {showMentions && filteredMentionUsers.length > 0 && (
+            <div className="absolute bottom-full left-0 right-0 mb-2 z-10">
+              <MentionPicker
+                users={filteredMentionUsers}
+                onSelect={handleMentionSelect}
+                onClose={() => setShowMentions(false)}
+                selectedIndex={mentionSelectedIndex}
+                loading={mentionsLoading}
+              />
+            </div>
+          )}
           <textarea
             ref={textareaRef}
             value={message}
-            onChange={(e) => handleMessageChange(e.target.value)}
-            placeholder={showQuickActions ? "Type your message... (/ for quick responses)" : "Type your message..."}
+            onChange={(e) => handleMessageChange(e.target.value, e.target.selectionStart)}
+            placeholder={showQuickActions ? "Type your message... (@ to mention, / for quick responses)" : "Type your message... (@ to mention)"}
             rows={1}
             aria-label="Message"
             className="w-full px-4 py-2.5 pr-20 bg-surface-light border border-border rounded-lg text-white placeholder:text-text-muted resize-none overflow-hidden focus:outline-none focus:ring-2 focus:ring-brand-500/50 focus:border-brand-500 transition-all"
             style={{ minHeight: '44px' }}
             onKeyDown={(e) => {
+              // Handle mention picker navigation
+              if (showMentions && filteredMentionUsers.length > 0) {
+                if (e.key === 'ArrowDown') {
+                  e.preventDefault()
+                  setMentionSelectedIndex((prev) => Math.min(prev + 1, filteredMentionUsers.length - 1))
+                } else if (e.key === 'ArrowUp') {
+                  e.preventDefault()
+                  setMentionSelectedIndex((prev) => Math.max(prev - 1, 0))
+                } else if (e.key === 'Enter' || e.key === 'Tab') {
+                  e.preventDefault()
+                  const selectedUser = filteredMentionUsers[mentionSelectedIndex]
+                  if (selectedUser) {
+                    handleMentionSelect(selectedUser)
+                  }
+                } else if (e.key === 'Escape') {
+                  e.preventDefault()
+                  setShowMentions(false)
+                }
+                return
+              }
+
               if (e.key === 'Escape' && showCannedResponses) {
                 e.preventDefault()
                 setShowCannedResponses(false)

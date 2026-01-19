@@ -301,3 +301,87 @@ export function linkifyText(text: string): string {
     return `<a href="${safeUrl}" target="_blank" rel="noopener noreferrer" class="text-brand-400 hover:underline">${url}</a>`
   })
 }
+
+// ============================================
+// Mention Parsing & Display
+// ============================================
+
+export interface ParsedMention {
+  name: string
+  userId: string
+  start: number
+  end: number
+}
+
+// Parse mentions from message content
+// Format: @[Name](user_id)
+export function parseMentions(text: string): ParsedMention[] {
+  const mentionRegex = /@\[([^\]]+)\]\(([^)]+)\)/g
+  const mentions: ParsedMention[] = []
+  let match
+
+  while ((match = mentionRegex.exec(text)) !== null) {
+    mentions.push({
+      name: match[1],
+      userId: match[2],
+      start: match.index,
+      end: match.index + match[0].length,
+    })
+  }
+
+  return mentions
+}
+
+// Check if a user is mentioned in the text
+export function isUserMentioned(text: string, userId: string): boolean {
+  const mentions = parseMentions(text)
+  return mentions.some((m) => m.userId === userId)
+}
+
+// Get display text with mentions replaced by just names (for previews)
+export function getMentionDisplayText(text: string): string {
+  return text.replace(/@\[([^\]]+)\]\([^)]+\)/g, '@$1')
+}
+
+// Parse message content into segments for rich rendering
+export interface MessageSegment {
+  type: 'text' | 'mention'
+  content: string
+  userId?: string
+}
+
+export function parseMessageContent(text: string): MessageSegment[] {
+  const segments: MessageSegment[] = []
+  const mentionRegex = /@\[([^\]]+)\]\(([^)]+)\)/g
+  let lastIndex = 0
+  let match
+
+  while ((match = mentionRegex.exec(text)) !== null) {
+    // Add text before mention
+    if (match.index > lastIndex) {
+      segments.push({
+        type: 'text',
+        content: text.slice(lastIndex, match.index),
+      })
+    }
+
+    // Add mention
+    segments.push({
+      type: 'mention',
+      content: match[1],
+      userId: match[2],
+    })
+
+    lastIndex = match.index + match[0].length
+  }
+
+  // Add remaining text
+  if (lastIndex < text.length) {
+    segments.push({
+      type: 'text',
+      content: text.slice(lastIndex),
+    })
+  }
+
+  return segments
+}

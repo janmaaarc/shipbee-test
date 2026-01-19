@@ -1,11 +1,34 @@
 import { useEffect, useRef, useMemo, useState } from 'react'
 import { FileText, Image, Film, Download, Maximize2 } from 'lucide-react'
-import { formatFileSize } from '../../lib/utils'
+import { formatFileSize, parseMessageContent } from '../../lib/utils'
 import { Avatar } from '../ui/Avatar'
 import { ImageLightbox } from '../ui/ImageLightbox'
 import { MessageReactions } from './MessageReactions'
 import { useReactions } from '../../hooks/useReactions'
 import type { MessageWithSender } from '../../types/database'
+
+// Component for rendering message content with mentions
+function MessageContent({ content }: { content: string }) {
+  const segments = useMemo(() => parseMessageContent(content), [content])
+
+  return (
+    <>
+      {segments.map((segment, index) => {
+        if (segment.type === 'mention') {
+          return (
+            <span
+              key={index}
+              className="inline-flex items-center px-1.5 py-0.5 mx-0.5 bg-brand-500/20 text-brand-400 rounded font-medium text-sm"
+            >
+              @{segment.content}
+            </span>
+          )
+        }
+        return <span key={index}>{segment.content}</span>
+      })}
+    </>
+  )
+}
 
 interface MessageThreadProps {
   messages: MessageWithSender[]
@@ -152,7 +175,9 @@ export function MessageThread({ messages }: MessageThreadProps) {
                       : 'bg-surface-light text-text-primary rounded-tl-md'
                   }`}
                 >
-                  <p className="text-sm whitespace-pre-wrap leading-relaxed">{message.content}</p>
+                  <p className="text-sm whitespace-pre-wrap leading-relaxed">
+                    <MessageContent content={message.content} />
+                  </p>
 
                   {/* Attachments */}
                   {message.attachments && message.attachments.length > 0 && (

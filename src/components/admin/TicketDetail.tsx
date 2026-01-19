@@ -11,6 +11,7 @@ import { ConfirmDialog } from '../ui/ConfirmDialog'
 import { useToast } from '../ui/Toast'
 import { useTypingIndicator } from '../../hooks/useTypingIndicator'
 import { useSwipeBack } from '../../hooks/useSwipeGesture'
+import { useMentionableUsers } from '../../hooks/useMentionableUsers'
 import type { TicketWithDetails, TicketStatus, Profile } from '../../types/database'
 
 interface TicketDetailProps {
@@ -40,6 +41,11 @@ export function TicketDetail({ ticket, loading, onClose, onStatusChange, onSendM
   const { typingUsers, onTyping, stopTyping, isAnyoneTyping } = useTypingIndicator({
     ticketId: ticket?.id || null,
     profile: profile || null,
+  })
+
+  // Mentionable users for @ mentions
+  const { users: mentionableUsers, loading: mentionsLoading } = useMentionableUsers({
+    customer: ticket?.customer || null,
   })
 
   // Swipe right to go back on mobile
@@ -210,7 +216,12 @@ export function TicketDetail({ ticket, loading, onClose, onStatusChange, onSendM
 
       {/* Input */}
       <div className="flex-shrink-0 border-t border-border bg-surface-light/30 safe-area-inset-bottom">
-        <MessageInput onSend={handleSendMessage} onTyping={onTyping} />
+        <MessageInput
+          onSend={handleSendMessage}
+          onTyping={onTyping}
+          mentionableUsers={mentionableUsers}
+          mentionsLoading={mentionsLoading}
+        />
       </div>
 
       {/* Confirmation Dialog */}
