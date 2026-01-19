@@ -42,28 +42,52 @@ export function TicketList({ tickets, loading, onSelect }: TicketListProps) {
 
   return (
     <div className="p-4 space-y-2 overflow-y-auto h-full">
-      {tickets.map((ticket) => (
-        <button
-          key={ticket.id}
-          onClick={() => onSelect(ticket.id)}
-          className="w-full p-3 text-left bg-surface border border-border rounded-xl hover:border-white/20 transition-colors group"
-        >
-          <div className="flex items-start justify-between gap-2">
-            <div className="flex-1 min-w-0">
-              <p className="font-medium text-white truncate">{ticket.subject}</p>
-              <div className="flex items-center gap-2 mt-1.5">
-                <Badge variant={statusVariant[ticket.status]} size="sm">
-                  {ticket.status}
-                </Badge>
-                <span className="text-xs text-text-muted">
-                  {formatRelativeTime(ticket.updated_at)}
-                </span>
+      {tickets.map((ticket) => {
+        const hasUnread = ticket.unread_count && ticket.unread_count > 0
+        const displayTime = ticket.last_message_at || ticket.updated_at
+
+        return (
+          <button
+            key={ticket.id}
+            onClick={() => onSelect(ticket.id)}
+            className={`w-full p-3 text-left bg-surface border rounded-xl hover:border-white/20 transition-colors group ${
+              hasUnread ? 'border-amber-500/40' : 'border-border'
+            }`}
+          >
+            <div className="flex items-start justify-between gap-2">
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2">
+                  {hasUnread && (
+                    <span className="flex-shrink-0 w-2 h-2 bg-amber-500 rounded-full" />
+                  )}
+                  <p className={`truncate ${hasUnread ? 'font-semibold text-white' : 'font-medium text-white'}`}>
+                    {ticket.subject}
+                  </p>
+                  {hasUnread && (
+                    <span className="flex-shrink-0 px-1.5 py-0.5 text-xs font-medium bg-amber-500 text-black rounded-full">
+                      {ticket.unread_count}
+                    </span>
+                  )}
+                </div>
+                {ticket.last_message && (
+                  <p className={`text-xs truncate mt-1 ${hasUnread ? 'text-text-secondary' : 'text-text-muted'}`}>
+                    {ticket.last_message}
+                  </p>
+                )}
+                <div className="flex items-center gap-2 mt-1.5">
+                  <Badge variant={statusVariant[ticket.status]} size="sm">
+                    {ticket.status}
+                  </Badge>
+                  <span className={`text-xs ${hasUnread ? 'text-amber-400 font-medium' : 'text-text-muted'}`}>
+                    {formatRelativeTime(displayTime)}
+                  </span>
+                </div>
               </div>
+              <ChevronRight className="w-5 h-5 text-text-muted group-hover:text-white transition-colors" />
             </div>
-            <ChevronRight className="w-5 h-5 text-text-muted group-hover:text-white transition-colors" />
-          </div>
-        </button>
-      ))}
+          </button>
+        )
+      })}
     </div>
   )
 }

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { ArrowLeft, Plus } from 'lucide-react'
+import { ArrowLeft, Plus, X } from 'lucide-react'
 import { useAuth } from '../../hooks/useAuth'
 import { useTickets, useTicketDetails } from '../../hooks/useTickets'
 import { WidgetLogin } from './WidgetLogin'
@@ -12,15 +12,19 @@ type View = 'tickets' | 'chat' | 'new'
 
 interface WidgetPanelProps {
   onUnreadChange?: (count: number) => void
+  onClose?: () => void
 }
 
-export function WidgetPanel({ onUnreadChange }: WidgetPanelProps) {
+export function WidgetPanel({ onUnreadChange, onClose }: WidgetPanelProps) {
   const { user, profile, loading: authLoading } = useAuth()
   const [view, setView] = useState<View>('tickets')
   const [selectedTicketId, setSelectedTicketId] = useState<string | null>(null)
 
-  const { tickets, loading: ticketsLoading } = useTickets()
-  const { ticket, loading: ticketLoading, sendMessage } = useTicketDetails(selectedTicketId)
+  const { tickets, loading: ticketsLoading, refetch: refetchTickets } = useTickets()
+  const { ticket, loading: ticketLoading, sendMessage } = useTicketDetails(selectedTicketId, {
+    profile,
+    onMarkAsRead: refetchTickets,
+  })
 
   // Track unread count based on tickets with unread messages
   useEffect(() => {
@@ -91,6 +95,15 @@ export function WidgetPanel({ onUnreadChange }: WidgetPanelProps) {
               <Plus className="w-4 h-4 mr-1" />
               New
             </Button>
+          )}
+          {onClose && (
+            <button
+              onClick={onClose}
+              aria-label="Close chat"
+              className="p-1.5 text-text-secondary hover:text-white rounded-lg hover:bg-surface-light transition-colors"
+            >
+              <X className="w-5 h-5" />
+            </button>
           )}
         </div>
       </div>

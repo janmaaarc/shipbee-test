@@ -71,7 +71,7 @@ export function useTickets(options: UseTicketsOptions = {}) {
     }
   }, [fetchTickets, loadingMore, hasMore, page])
 
-  // Subscribe to realtime updates
+  // Subscribe to realtime updates for tickets AND messages
   useEffect(() => {
     const channel = supabase
       .channel('tickets-changes')
@@ -80,6 +80,14 @@ export function useTickets(options: UseTicketsOptions = {}) {
         { event: '*', schema: 'public', table: 'tickets' },
         () => {
           // Refresh from the beginning when tickets change
+          fetchTickets(0, false)
+        }
+      )
+      .on(
+        'postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'messages' },
+        () => {
+          // Refresh when new messages arrive to update unread counts
           fetchTickets(0, false)
         }
       )
