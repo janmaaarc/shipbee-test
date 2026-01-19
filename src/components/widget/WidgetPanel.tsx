@@ -109,6 +109,7 @@ export function WidgetPanel({ onUnreadChange }: WidgetPanelProps) {
             ticket={ticket}
             loading={ticketLoading}
             onSendMessage={sendMessage}
+            profile={profile}
           />
         )}
         {view === 'new' && (

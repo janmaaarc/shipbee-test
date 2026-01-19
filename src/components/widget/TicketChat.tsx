@@ -5,12 +5,15 @@ import { Avatar } from '../ui/Avatar'
 import { Badge } from '../ui/Badge'
 import { MessageInput } from '../admin/MessageInput'
 import { Skeleton, SkeletonAvatar } from '../ui/Skeleton'
-import type { TicketWithDetails, TicketStatus } from '../../types/database'
+import { TypingIndicator } from '../ui/TypingIndicator'
+import { useTypingIndicator } from '../../hooks/useTypingIndicator'
+import type { TicketWithDetails, TicketStatus, Profile } from '../../types/database'
 
 interface TicketChatProps {
   ticket: TicketWithDetails | null
   loading: boolean
   onSendMessage: (content: string, attachments?: { file_name: string; file_url: string; file_type: string; file_size: number }[]) => Promise<{ error: Error | null }>
+  profile?: Profile | null
 }
 
 const statusVariant: Record<TicketStatus, 'default' | 'warning' | 'success' | 'info'> = {
@@ -28,12 +31,28 @@ function formatTime(date: string): string {
   })
 }
 
-export function TicketChat({ ticket, loading, onSendMessage }: TicketChatProps) {
+export function TicketChat({ ticket, loading, onSendMessage, profile }: TicketChatProps) {
   const bottomRef = useRef<HTMLDivElement>(null)
+
+  const { typingUsers, onTyping, stopTyping, isAnyoneTyping } = useTypingIndicator({
+    ticketId: ticket?.id || null,
+    profile: profile || null,
+  })
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [ticket?.messages])
+
+  const typingName = typingUsers.length > 0
+    ? typingUsers.length === 1
+      ? typingUsers[0].name
+      : `${typingUsers.length} people`
+    : undefined
+
+  async function handleSendMessage(content: string, attachments?: { file_name: string; file_url: string; file_type: string; file_size: number }[]) {
+    stopTyping()
+    return onSendMessage(content, attachments)
+  }
 
   if (loading) {
     return (
@@ -179,10 +198,17 @@ export function TicketChat({ ticket, loading, onSendMessage }: TicketChatProps) 
         <div ref={bottomRef} />
       </div>
 
+      {/* Typing indicator */}
+      {isAnyoneTyping && (
+        <div className="px-4 py-2 border-t border-border/50">
+          <TypingIndicator name={typingName} />
+        </div>
+      )}
+
       {/* Input */}
       {ticket.status !== 'closed' ? (
         <div className="flex-shrink-0 border-t border-border bg-surface-light/30">
-          <MessageInput onSend={onSendMessage} />
+          <MessageInput onSend={handleSendMessage} onTyping={onTyping} />
         </div>
       ) : (
         <div className="flex-shrink-0 p-4 border-t border-border bg-surface-light/30">
