@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { ArrowLeft, Plus } from 'lucide-react'
 import { useAuth } from '../../hooks/useAuth'
 import { useTickets, useTicketDetails } from '../../hooks/useTickets'
@@ -10,13 +10,25 @@ import { Button } from '../ui/Button'
 
 type View = 'tickets' | 'chat' | 'new'
 
-export function WidgetPanel() {
+interface WidgetPanelProps {
+  onUnreadChange?: (count: number) => void
+}
+
+export function WidgetPanel({ onUnreadChange }: WidgetPanelProps) {
   const { user, profile, loading: authLoading } = useAuth()
   const [view, setView] = useState<View>('tickets')
   const [selectedTicketId, setSelectedTicketId] = useState<string | null>(null)
 
   const { tickets, loading: ticketsLoading } = useTickets()
   const { ticket, loading: ticketLoading, sendMessage } = useTicketDetails(selectedTicketId)
+
+  // Track unread count based on tickets with unread messages
+  useEffect(() => {
+    if (onUnreadChange && tickets) {
+      const unread = tickets.reduce((acc, t) => acc + (t.unread_count || 0), 0)
+      onUnreadChange(unread)
+    }
+  }, [tickets, onUnreadChange])
 
   if (authLoading) {
     return (
