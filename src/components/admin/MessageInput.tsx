@@ -39,8 +39,14 @@ export function MessageInput({ onSend, onTyping }: MessageInputProps) {
   // Rate limiting - 10 messages per minute
   const { isRateLimited, remainingRequests, resetTime, checkAndRecord } = useMessageRateLimit(() => {
     setRateLimitWarning(true)
-    setTimeout(() => setRateLimitWarning(false), 3000)
   })
+
+  // Hide warning when no longer rate limited
+  useEffect(() => {
+    if (!isRateLimited && rateLimitWarning) {
+      setRateLimitWarning(false)
+    }
+  }, [isRateLimited, rateLimitWarning])
 
   // Detect slash commands
   const handleMessageChange = useCallback((value: string) => {
