@@ -1,4 +1,4 @@
-import { useRef, useCallback } from 'react'
+import { useRef, useCallback, useState, useEffect } from 'react'
 import { Inbox, Loader2, AlertCircle, RefreshCw } from 'lucide-react'
 import { formatRelativeTime, formatDate, statusVariant, priorityVariant } from '../../lib/utils'
 import { Avatar } from '../ui/Avatar'
@@ -22,6 +22,27 @@ interface TicketListProps {
 
 export function TicketList({ tickets, selectedId, onSelect, loading, loadingMore, hasMore, onLoadMore, error, onRetry }: TicketListProps) {
   const listRef = useRef<HTMLDivElement>(null)
+  const scrollContainerRef = useRef<HTMLDivElement>(null)
+  const [showTopFade, setShowTopFade] = useState(false)
+  const [showBottomFade, setShowBottomFade] = useState(false)
+
+  // Track scroll position for fade effects
+  useEffect(() => {
+    const container = scrollContainerRef.current
+    if (!container) return
+
+    const handleScroll = () => {
+      const { scrollTop, scrollHeight, clientHeight } = container
+      setShowTopFade(scrollTop > 10)
+      setShowBottomFade(scrollTop < scrollHeight - clientHeight - 10)
+    }
+
+    // Initial check
+    handleScroll()
+
+    container.addEventListener('scroll', handleScroll, { passive: true })
+    return () => container.removeEventListener('scroll', handleScroll)
+  }, [tickets])
 
   // Keyboard navigation
   const handleKeyDown = useCallback((e: React.KeyboardEvent, currentIndex: number) => {
@@ -88,8 +109,21 @@ export function TicketList({ tickets, selectedId, onSelect, loading, loadingMore
   }
 
   return (
-    <div ref={listRef} className="space-y-2" role="listbox" aria-label="Ticket list">
-      {tickets.map((ticket, index) => {
+    <div className="relative h-full">
+      {/* Top fade gradient */}
+      <div
+        className={`absolute top-0 left-0 right-0 h-8 bg-gradient-to-b from-background to-transparent z-10 pointer-events-none transition-opacity duration-200 ${
+          showTopFade ? 'opacity-100' : 'opacity-0'
+        }`}
+      />
+
+      {/* Scrollable container */}
+      <div
+        ref={scrollContainerRef}
+        className="h-full overflow-y-auto scroll-smooth scrollbar-thin scrollbar-thumb-white/10 scrollbar-track-transparent hover:scrollbar-thumb-white/20"
+      >
+        <div ref={listRef} className="space-y-2 pb-2" role="listbox" aria-label="Ticket list">
+          {tickets.map((ticket, index) => {
         const hasUnread = ticket.unread_count && ticket.unread_count > 0
         const displayTime = ticket.last_message_at || ticket.updated_at || ticket.created_at
         const isUrgent = ticket.priority === 'urgent'
@@ -161,26 +195,35 @@ export function TicketList({ tickets, selectedId, onSelect, loading, loadingMore
         )
       })}
 
-      {/* Load More */}
-      {hasMore && onLoadMore && (
-        <div className="pt-2">
-          <Button
-            variant="secondary"
-            onClick={onLoadMore}
-            disabled={loadingMore}
-            className="w-full"
-          >
-            {loadingMore ? (
-              <>
-                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                Loading...
-              </>
-            ) : (
-              'Load More'
-            )}
-          </Button>
+          {/* Load More */}
+          {hasMore && onLoadMore && (
+            <div className="pt-2">
+              <Button
+                variant="secondary"
+                onClick={onLoadMore}
+                disabled={loadingMore}
+                className="w-full"
+              >
+                {loadingMore ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Loading...
+                  </>
+                ) : (
+                  'Load More'
+                )}
+              </Button>
+            </div>
+          )}
         </div>
-      )}
+      </div>
+
+      {/* Bottom fade gradient */}
+      <div
+        className={`absolute bottom-0 left-0 right-0 h-8 bg-gradient-to-t from-background to-transparent z-10 pointer-events-none transition-opacity duration-200 ${
+          showBottomFade ? 'opacity-100' : 'opacity-0'
+        }`}
+      />
     </div>
   )
 }
