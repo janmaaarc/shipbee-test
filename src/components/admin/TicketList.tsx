@@ -131,29 +131,17 @@ export function TicketList({ tickets, selectedId, onSelect, loading, loadingMore
             }`}
           >
             <div className="flex items-start gap-3">
-              <div className="relative flex-shrink-0">
-                <Avatar
-                  src={ticket.customer.avatar_url}
-                  name={ticket.customer.full_name}
-                  size="md"
-                />
-                {/* Unread indicator dot */}
-                {hasUnread && (
-                  <span className="absolute -top-0.5 -right-0.5 w-3 h-3 bg-brand-500 rounded-full border-2 border-surface" />
-                )}
-              </div>
+              <Avatar
+                src={ticket.customer.avatar_url}
+                name={ticket.customer.full_name}
+                size="md"
+              />
               <div className="flex-1 min-w-0">
                 <div className="flex items-center justify-between gap-2 mb-1">
                   <div className="flex items-center gap-2 min-w-0">
                     <p className={`font-medium truncate ${hasUnread ? 'text-white' : 'text-white'}`}>
                       {ticket.subject}
                     </p>
-                    {/* Unread count badge */}
-                    {hasUnread && (
-                      <span className="flex-shrink-0 px-1.5 py-0.5 text-xs font-semibold bg-brand-500 text-white rounded-full min-w-[20px] text-center">
-                        {ticket.unread_count}
-                      </span>
-                    )}
                   </div>
                   <span
                     className={`text-xs whitespace-nowrap ${hasUnread ? 'text-brand-400 font-medium' : 'text-text-muted'}`}
