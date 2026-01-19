@@ -1,7 +1,7 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { Login } from './pages/Login'
 import { AdminDashboard } from './pages/AdminDashboard'
-import { WidgetDemo } from './pages/WidgetDemo'
+import { CustomerDashboard } from './pages/CustomerDashboard'
 import { useAuth } from './hooks/useAuth'
 import { ToastProvider } from './components/ui/Toast'
 import { ErrorBoundary } from './components/ui/ErrorBoundary'
@@ -40,7 +40,7 @@ function RoleRouter() {
     return <AdminDashboard />
   }
 
-  return <WidgetDemo />
+  return <CustomerDashboard />
 }
 
 export default function App() {
